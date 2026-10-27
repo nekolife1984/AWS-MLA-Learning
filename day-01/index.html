@@ -1,0 +1,576 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="light dark" />
+<link rel="icon" href="data:," />
+<title>MLA解説 Day 1 — Amazon SageMakerの全体像</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;800;900&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f6f7f9;
+    --surface:#ffffff;
+    --surface-2:#fff7ed;
+    --surface-3:#f1f5f9;
+    --ink:#0f172a;
+    --ink-2:#334155;
+    --muted:#64748b;
+    --line:#e2e8f0;
+    --line-strong:#cbd5e1;
+    --orange:#ea580c;
+    --orange-bright:#ff9900;
+    --orange-soft:#ffedd5;
+    --teal:#0f766e;
+    --teal-soft:#ccfbf1;
+    --navy:#13233f;
+    --navy-2:#1e3a5f;
+    --red:#b91c1c;
+    --red-soft:#fee2e2;
+    --green:#15803d;
+    --green-soft:#dcfce7;
+    --shadow:0 10px 30px rgba(15,23,42,.08);
+    --shadow-sm:0 2px 10px rgba(15,23,42,.06);
+    --radius:18px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0b1220;
+      --surface:#111c30;
+      --surface-2:#1c1a12;
+      --surface-3:#16233c;
+      --ink:#f1f5f9;
+      --ink-2:#cbd5e1;
+      --muted:#94a3b8;
+      --line:#24344f;
+      --line-strong:#334155;
+      --orange:#fb923c;
+      --orange-bright:#ff9900;
+      --orange-soft:#431407;
+      --teal:#2dd4bf;
+      --teal-soft:#042f2e;
+      --navy:#0f172a;
+      --navy-2:#1e293b;
+      --red:#fca5a5;
+      --red-soft:#450a0a;
+      --green:#86efac;
+      --green-soft:#052e16;
+      --shadow:0 10px 30px rgba(0,0,0,.35);
+      --shadow-sm:0 2px 10px rgba(0,0,0,.3);
+    }
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:"Noto Sans JP", system-ui, -apple-system, "Hiragino Kaku Gothic ProN", sans-serif;
+    line-height:1.75;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:var(--orange)}
+  .wrap{max-width:920px;margin:0 auto;padding:20px 18px 56px}
+
+  /* ---------- top meta ---------- */
+  .meta-row{
+    display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:6px 0 18px;
+  }
+  .pill{
+    display:inline-flex;align-items:center;gap:6px;
+    font-size:12.5px;font-weight:700;letter-spacing:.02em;
+    padding:5px 11px;border-radius:999px;border:1px solid var(--line);
+    background:var(--surface);color:var(--ink-2);
+  }
+  .pill.day{background:var(--navy);color:#fff;border-color:var(--navy)}
+  @media (prefers-color-scheme: dark){ .pill.day{background:var(--orange-bright);color:#111827;border-color:var(--orange-bright)} }
+  .pill .dot{width:7px;height:7px;border-radius:50%;background:var(--orange-bright);flex:none}
+  .mono{font-family:"IBM Plex Mono", ui-monospace, monospace}
+
+  /* ---------- hero ---------- */
+  .hero{
+    background:var(--navy);
+    color:#fff;
+    border-radius:24px;
+    padding:30px 28px 26px;
+    position:relative;
+    overflow:hidden;
+    box-shadow:var(--shadow);
+  }
+  .hero::after{
+    content:"";position:absolute;right:-70px;top:-70px;width:260px;height:260px;border-radius:50%;
+    border:44px solid rgba(255,153,0,.22);pointer-events:none;
+  }
+  .hero::before{
+    content:"";position:absolute;right:54px;bottom:-90px;width:160px;height:160px;border-radius:50%;
+    border:28px solid rgba(45,212,191,.14);pointer-events:none;
+  }
+  .hero-kicker{font-size:13px;font-weight:800;letter-spacing:.14em;color:#ffb25e;text-transform:uppercase;margin:0 0 8px;position:relative;z-index:1}
+  .hero h1{font-size:32px;line-height:1.3;font-weight:900;margin:0 0 12px;position:relative;z-index:1;letter-spacing:.01em}
+  .hero h1 .hl{color:var(--orange-bright)}
+  .hero p.lead{margin:0;color:#dbe6f3;font-size:15.5px;max-width:640px;position:relative;z-index:1}
+  .hero-tags{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px;position:relative;z-index:1}
+  .hero-tags span{font-size:12.5px;font-weight:700;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);color:#e2e8f0;padding:4px 10px;border-radius:999px}
+
+  .oneline{
+    margin-top:16px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+    padding:18px 20px;box-shadow:var(--shadow-sm);display:flex;gap:14px;align-items:flex-start;
+  }
+  .oneline .icon{
+    flex:none;width:42px;height:42px;border-radius:12px;background:var(--orange-soft);display:grid;place-items:center;font-size:21px;
+  }
+  .oneline h2{font-size:13px;letter-spacing:.08em;color:var(--orange);margin:0 0 4px;font-weight:800}
+  .oneline p{margin:0;font-size:16.5px;font-weight:700;line-height:1.6;color:var(--ink)}
+  .oneline p b{color:var(--orange)}
+
+  /* ---------- sections ---------- */
+  section{margin-top:36px}
+  .sec-head{display:flex;align-items:baseline;gap:12px;margin-bottom:6px;flex-wrap:wrap}
+  .sec-num{
+    font-family:"IBM Plex Mono",monospace;font-size:13px;font-weight:600;color:#fff;background:var(--orange);
+    width:28px;height:28px;border-radius:8px;display:inline-grid;place-items:center;flex:none;align-self:center;
+  }
+  .sec-head h2{font-size:22px;font-weight:900;margin:0;line-height:1.3}
+  .sec-sub{color:var(--muted);font-size:14px;margin:2px 0 16px 40px}
+  @media (max-width:560px){ .sec-sub{margin-left:0} }
+
+  /* ---------- lifecycle flow ---------- */
+  .flow{display:grid;grid-template-columns:1fr auto 1fr auto 1fr auto 1fr;align-items:stretch;gap:6px;margin:14px 0 18px}
+  .flow-step{
+    background:var(--surface);border:1.5px solid var(--line);border-radius:16px;padding:14px 12px;text-align:center;cursor:pointer;
+    transition:border-color .15s, background .15s, transform .15s;font-family:inherit;color:var(--ink);
+  }
+  .flow-step:hover{transform:translateY(-2px)}
+  .flow-step:focus-visible{outline:3px solid var(--orange-bright);outline-offset:2px}
+  .flow-step.active{border-color:var(--orange);background:var(--surface-2)}
+  .flow-step .step-emoji{font-size:24px;display:block;line-height:1.2}
+  .flow-step .step-no{font-family:"IBM Plex Mono",monospace;font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.08em}
+  .flow-step .step-name{font-weight:800;font-size:15px;display:block;margin-top:2px}
+  .flow-step .step-en{font-size:11.5px;color:var(--muted);display:block}
+  .flow-arrow{display:grid;place-items:center;color:var(--line-strong);font-size:18px;font-weight:900;pointer-events:none}
+  @media (max-width:640px){
+    .flow{grid-template-columns:1fr;gap:8px}
+    .flow-arrow{transform:rotate(90deg);padding:0;height:18px}
+    .flow-step{display:flex;align-items:center;gap:12px;text-align:left;padding:12px 14px}
+    .flow-step .step-emoji{font-size:22px}
+    .flow-step .step-meta{text-align:left}
+  }
+  .phase-panel{
+    background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:22px;box-shadow:var(--shadow-sm);
+  }
+  .phase-panel h3{margin:0 0 4px;font-size:19px;font-weight:900}
+  .phase-panel h3 .en{font-size:13px;color:var(--muted);font-weight:700;margin-left:8px;letter-spacing:.04em}
+  .phase-panel .phase-desc{color:var(--ink-2);font-size:14.5px;margin:0 0 16px}
+  .feat-list{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  @media (max-width:700px){ .feat-list{grid-template-columns:1fr} }
+  .feat{background:var(--surface-3);border-radius:14px;padding:14px 15px}
+  .feat .fname{font-weight:800;font-size:14.5px;margin:0 0 4px}
+  .feat .fname .mono{font-size:13px;color:var(--orange);display:block;font-weight:600}
+  .feat p{margin:0;font-size:13.5px;color:var(--ink-2);line-height:1.65}
+  .phase-tip{margin-top:14px;font-size:13.5px;background:var(--teal-soft);color:var(--ink);border-radius:12px;padding:11px 14px}
+  .phase-tip b{color:var(--teal)}
+
+  /* ---------- when to use ---------- */
+  .use-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media (max-width:640px){ .use-grid{grid-template-columns:1fr} }
+  .use-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow-sm)}
+  .use-card h3{margin:0 0 8px;font-size:16px;font-weight:800;display:flex;gap:8px;align-items:center}
+  .use-card p,.use-card li{font-size:14.5px;color:var(--ink-2)}
+  .use-card p{margin:0}
+  .use-card ul{margin:8px 0 0;padding-left:20px}
+  .use-card li{margin:4px 0}
+
+  /* ---------- exam points ---------- */
+  .exam-list{display:flex;flex-direction:column;gap:12px}
+  .exam-item{
+    display:flex;gap:14px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;box-shadow:var(--shadow-sm);
+  }
+  .exam-item .badge{
+    flex:none;width:34px;height:34px;border-radius:50%;background:var(--navy);color:#fff;font-weight:800;font-size:15px;display:grid;place-items:center;margin-top:2px;
+  }
+  @media (prefers-color-scheme: dark){ .exam-item .badge{background:var(--orange-bright);color:#111827} }
+  .exam-item h3{margin:0 0 4px;font-size:16px;font-weight:800}
+  .exam-item p{margin:0;font-size:14.5px;color:var(--ink-2)}
+  .exam-item code,.feat code,.compare code{
+    font-family:"IBM Plex Mono",monospace;font-size:.88em;background:var(--surface-3);border:1px solid var(--line);
+    padding:1px 6px;border-radius:6px;color:var(--orange);font-weight:600;white-space:nowrap;
+  }
+
+  /* ---------- compare ---------- */
+  .compare{display:flex;flex-direction:column;gap:14px}
+  .compare-row{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow-sm)}
+  .compare-vs{display:grid;grid-template-columns:1fr auto 1fr}
+  @media (max-width:640px){ .compare-vs{grid-template-columns:1fr} .vs-badge{margin:0 auto} }
+  .compare-cell{padding:18px 20px}
+  .compare-cell.a{background:var(--surface-2)}
+  .compare-cell h3{margin:0 0 5px;font-size:16.5px;font-weight:900}
+  .compare-cell p{margin:0;font-size:14px;color:var(--ink-2)}
+  .vs-badge{align-self:center;width:38px;height:38px;border-radius:50%;background:var(--ink);color:var(--bg);font-weight:900;font-size:12px;display:grid;place-items:center;letter-spacing:.05em;z-index:1;margin:0 -6px}
+  .compare-note{padding:12px 20px;border-top:1px dashed var(--line-strong);font-size:13.5px;color:var(--ink-2);background:var(--surface)}
+  .compare-note b{color:var(--orange)}
+
+  /* ---------- quiz ---------- */
+  .quiz{
+    background:var(--navy);color:#fff;border-radius:24px;padding:26px 24px;box-shadow:var(--shadow);position:relative;overflow:hidden;
+  }
+  .quiz::after{content:"?";position:absolute;right:14px;top:-28px;font-size:150px;font-weight:900;color:rgba(255,255,255,.06);line-height:1;pointer-events:none}
+  .quiz .q-label{font-size:12.5px;font-weight:800;letter-spacing:.12em;color:#ffb25e;margin:0 0 8px}
+  .quiz h2{font-size:20px;font-weight:900;margin:0 0 6px;line-height:1.45}
+  .quiz .q-sub{color:#cbd5e1;font-size:13.5px;margin:0 0 18px}
+  .quiz-block{margin-bottom:22px;position:relative;z-index:1}
+  .quiz-block:last-child{margin-bottom:0}
+  .quiz-q{font-weight:700;font-size:15.5px;margin:0 0 12px;line-height:1.65}
+  .quiz-q .qno{color:var(--orange-bright);font-family:"IBM Plex Mono",monospace;margin-right:6px}
+  .choices{display:flex;flex-direction:column;gap:9px}
+  .choice{
+    text-align:left;font-family:inherit;font-size:14.5px;font-weight:600;color:#e2e8f0;
+    background:rgba(255,255,255,.07);border:1.5px solid rgba(255,255,255,.22);border-radius:12px;
+    padding:12px 15px;cursor:pointer;display:flex;gap:10px;align-items:flex-start;line-height:1.55;
+  }
+  .choice:hover{border-color:var(--orange-bright)}
+  .choice:focus-visible{outline:3px solid var(--orange-bright);outline-offset:2px}
+  .choice .letter{flex:none;width:24px;height:24px;border-radius:7px;background:rgba(255,255,255,.14);display:grid;place-items:center;font-size:13px;font-weight:800;margin-top:1px}
+  .choice.correct{border-color:#4ade80;background:rgba(74,222,128,.16);color:#fff}
+  .choice.correct .letter{background:#22c55e;color:#fff}
+  .choice.wrong{border-color:#f87171;background:rgba(248,113,113,.14)}
+  .choice.wrong .letter{background:#dc2626;color:#fff}
+  .choice:disabled{cursor:default;opacity:.92}
+  .feedback{display:none;margin-top:12px;border-radius:12px;padding:12px 15px;font-size:14px;line-height:1.65}
+  .feedback.show{display:block}
+  .feedback.ok{background:rgba(74,222,128,.15);border:1px solid rgba(74,222,128,.4)}
+  .feedback.ng{background:rgba(248,113,113,.13);border:1px solid rgba(248,113,113,.4)}
+  .feedback b{color:#fff}
+  .quiz-score{margin-top:18px;font-size:14px;font-weight:700;color:#e2e8f0;display:none;position:relative;z-index:1}
+  .quiz-score.show{display:block}
+  .quiz-score .big{color:var(--orange-bright);font-size:18px}
+
+  /* ---------- next / footer ---------- */
+  .next-card{
+    margin-top:36px;display:flex;gap:16px;align-items:center;background:var(--surface);border:1.5px dashed var(--line-strong);
+    border-radius:var(--radius);padding:20px 22px;
+  }
+  .next-card .n-emoji{font-size:32px;flex:none}
+  .next-card h2{margin:0 0 2px;font-size:16.5px;font-weight:900}
+  .next-card p{margin:0;font-size:14px;color:var(--muted)}
+  .next-card .day2{margin-left:auto;flex:none;font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:13px;color:var(--orange);border:1px solid var(--orange);border-radius:999px;padding:5px 12px;white-space:nowrap}
+  @media (max-width:560px){ .next-card{flex-wrap:wrap} .next-card .day2{margin-left:0} }
+  footer{margin-top:28px;text-align:center;color:var(--muted);font-size:12.5px}
+  .checklist-note{font-size:13px;color:var(--muted);margin-top:10px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="meta-row" aria-label="メタ情報">
+    <span class="pill day">DAY 1 / 84</span>
+    <span class="pill"><span class="dot"></span>AWS MLA-C01 対策</span>
+    <span class="pill">⏱ 読了目安 約3分</span>
+    <span class="pill mono">2026.10.27 TUE</span>
+  </div>
+
+  <header class="hero">
+    <p class="hero-kicker">Machine Learning — Lesson 01</p>
+    <h1>Amazon <span class="hl">SageMaker</span> の全体像と<br>MLライフサイクル</h1>
+    <p class="lead">データ準備から学習・デプロイ・運用まで。機械学習の「全工程」を1つの場所で回せるサービス、それが SageMaker です。今日はその地図を頭に入れましょう。</p>
+    <div class="hero-tags">
+      <span># フルマネージド</span><span># MLプラットフォーム</span><span># ライフサイクル</span>
+    </div>
+  </header>
+
+  <div class="oneline">
+    <div class="icon" aria-hidden="true">💡</div>
+    <div>
+      <h2>一言で言うと</h2>
+      <p>Amazon SageMaker は、データ準備から学習・デプロイ・運用まで、<b>機械学習の全工程をまとめて面倒見てくれるフルマネージドなサービス</b>です。</p>
+    </div>
+  </div>
+
+  <!-- 01 lifecycle -->
+  <section aria-labelledby="sec1">
+    <div class="sec-head"><span class="sec-num">01</span><h2 id="sec1">MLライフサイクル ― 4つの工程</h2></div>
+    <p class="sec-sub">工程をタップすると、対応する SageMaker の機能が切り替わります。まずはこの流れ自体を覚えるのが近道です。</p>
+
+    <div class="flow" role="tablist" aria-label="MLライフサイクルの工程">
+      <button class="flow-step active" role="tab" aria-selected="true" data-phase="0" id="tab-0">
+        <span class="step-emoji" aria-hidden="true">🧹</span>
+        <span class="step-meta"><span class="step-no">STEP 1</span><span class="step-name">準備</span><span class="step-en">Prepare</span></span>
+      </button>
+      <span class="flow-arrow" aria-hidden="true">›</span>
+      <button class="flow-step" role="tab" aria-selected="false" data-phase="1" id="tab-1">
+        <span class="step-emoji" aria-hidden="true">🏋️</span>
+        <span class="step-meta"><span class="step-no">STEP 2</span><span class="step-name">学習</span><span class="step-en">Train</span></span>
+      </button>
+      <span class="flow-arrow" aria-hidden="true">›</span>
+      <button class="flow-step" role="tab" aria-selected="false" data-phase="2" id="tab-2">
+        <span class="step-emoji" aria-hidden="true">🚀</span>
+        <span class="step-meta"><span class="step-no">STEP 3</span><span class="step-name">デプロイ</span><span class="step-en">Deploy</span></span>
+      </button>
+      <span class="flow-arrow" aria-hidden="true">›</span>
+      <button class="flow-step" role="tab" aria-selected="false" data-phase="3" id="tab-3">
+        <span class="step-emoji" aria-hidden="true">🩺</span>
+        <span class="step-meta"><span class="step-no">STEP 4</span><span class="step-name">運用</span><span class="step-en">Operate</span></span>
+      </button>
+    </div>
+
+    <div class="phase-panel" role="tabpanel" aria-live="polite" id="phasePanel">
+      <!-- JSで差し替え -->
+    </div>
+  </section>
+
+  <!-- 02 when -->
+  <section aria-labelledby="sec2">
+    <div class="sec-head"><span class="sec-num">02</span><h2 id="sec2">いつ SageMaker を選ぶ？</h2></div>
+    <p class="sec-sub">キーワードは「モデルは作りたい。でもサーバー管理まではしたくない」です。</p>
+    <div class="use-grid">
+      <div class="use-card">
+        <h3>✅ SageMaker が向いている場面</h3>
+        <ul>
+          <li>自分たちのデータで、独自のモデルを作って学習させたい</li>
+          <li>学習用のコンピューティングや環境構築を AWS に任せたい</li>
+          <li>学習から推論・運用までを一貫して管理したい</li>
+        </ul>
+      </div>
+      <div class="use-card">
+        <h3>🧭 自前で組む場合との違い</h3>
+        <p>EC2 上に自分で ML 環境を構築すると、ライブラリの管理、スケーリング、可用性まで全部自分で面倒を見る必要があります。SageMaker はそのインフラ部分を引き受ける<b>マネージドな ML プラットフォーム</b>です。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 03 exam -->
+  <section aria-labelledby="sec3">
+    <div class="sec-head"><span class="sec-num">03</span><h2 id="sec3">試験で問われるポイント</h2></div>
+    <p class="sec-sub">MLA-C01 のシナリオ問題では、「状況 → どの機能か」を結びつける力が試されます。</p>
+    <div class="exam-list">
+      <div class="exam-item">
+        <div class="badge">1</div>
+        <div>
+          <h3>SageMaker ＝ マネージドな ML プラットフォーム</h3>
+          <p>EC2 に自分で環境を組む手間を省ける、という位置づけが大前提。「インフラ管理を減らしたい」という要件が出たら SageMaker が有力候補です。</p>
+        </div>
+      </div>
+      <div class="exam-item">
+        <div class="badge">2</div>
+        <div>
+          <h3>工程と機能名の対応を覚える</h3>
+          <p><code>Data Wrangler</code>＝データ整形、<code>Ground Truth</code>＝ラベル付け、<code>Training Jobs</code>＝学習、<code>エンドポイント</code>＝推論、<code>Model Monitor</code>＝運用監視。この対応がシナリオ問題で頻出です。</p>
+        </div>
+      </div>
+      <div class="exam-item">
+        <div class="badge">3</div>
+        <div>
+          <h3>推論方式の使い分け</h3>
+          <p>「学習済みモデルを API で呼びたい（1件ずつ・すぐ答えがほしい）」→ <code>リアルタイムエンドポイント</code>。「大量データをまとめて推論したい」→ <code>バッチ変換</code>。この切り分けは鉄板パターンです。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 04 compare -->
+  <section aria-labelledby="sec4">
+    <div class="sec-head"><span class="sec-num">04</span><h2 id="sec4">間違えやすい！似たものとの違い</h2></div>
+    <p class="sec-sub">名前が似ている・役割が近いサービス同士の区別は、試験の定番の引っかけポイントです。</p>
+    <div class="compare">
+      <div class="compare-row">
+        <div class="compare-vs">
+          <div class="compare-cell a">
+            <h3>Amazon SageMaker</h3>
+            <p>自分でモデルを<b>作って・運用する</b>場所。学習データも学習方法も自分で用意する。</p>
+          </div>
+          <div class="vs-badge" aria-hidden="true">VS</div>
+          <div class="compare-cell">
+            <h3>Amazon Bedrock</h3>
+            <p>完成済みの<b>基盤モデルを API で使う</b>場所。モデル自体は作らず、既存のものを利用する。</p>
+          </div>
+        </div>
+        <div class="compare-note">🔑 見分け方：「モデルを<b>学習させる</b>必要があるか？」→ あるなら SageMaker、ないなら Bedrock を検討。</div>
+      </div>
+
+      <div class="compare-row">
+        <div class="compare-vs">
+          <div class="compare-cell a">
+            <h3>Amazon SageMaker（全体）</h3>
+            <p>ML プラットフォーム<b>サービス全体</b>の名前。準備・学習・デプロイ・運用のすべてを含む。</p>
+          </div>
+          <div class="vs-badge" aria-hidden="true">VS</div>
+          <div class="compare-cell">
+            <h3>SageMaker Studio</h3>
+            <p>SageMaker の中の<b>開発環境（IDE）</b>の名前。ノートブックなどで開発作業をする画面のこと。</p>
+          </div>
+        </div>
+        <div class="compare-note">🔑 見分け方：Studio は「作業する場所（道具）」、SageMaker は「サービス全体」。Studio ⊂ SageMaker の関係です。</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- quiz -->
+  <section aria-labelledby="quizTitle">
+    <div class="quiz">
+      <p class="q-label">CHECK QUIZ — 確認クイズ</p>
+      <h2 id="quizTitle">今日の理解度チェック（全2問）</h2>
+      <p class="q-sub">選択肢をタップすると、その場で答え合わせができます。</p>
+
+      <div class="quiz-block" data-quiz="0">
+        <p class="quiz-q"><span class="qno">Q1.</span>学習したモデルを、API 経由で 1 件ずつリアルタイムに推論させたいとき、SageMaker のどの機能を使う？</p>
+        <div class="choices">
+          <button class="choice" data-correct="false"><span class="letter">A</span><span>バッチ変換（Batch Transform）</span></button>
+          <button class="choice" data-correct="true"><span class="letter">B</span><span>リアルタイム推論エンドポイント</span></button>
+          <button class="choice" data-correct="false"><span class="letter">C</span><span>Ground Truth</span></button>
+        </div>
+        <div class="feedback" role="status"></div>
+      </div>
+
+      <div class="quiz-block" data-quiz="1">
+        <p class="quiz-q"><span class="qno">Q2.</span>「既存の基盤モデルを学習させずに API で使いたい」という要件に合うサービスはどちら？</p>
+        <div class="choices">
+          <button class="choice" data-correct="false"><span class="letter">A</span><span>Amazon SageMaker</span></button>
+          <button class="choice" data-correct="true"><span class="letter">B</span><span>Amazon Bedrock</span></button>
+          <button class="choice" data-correct="false"><span class="letter">C</span><span>SageMaker Studio</span></button>
+        </div>
+        <div class="feedback" role="status"></div>
+      </div>
+
+      <p class="quiz-score" id="quizScore"></p>
+    </div>
+  </section>
+
+  <div class="next-card">
+    <div class="n-emoji" aria-hidden="true">📦</div>
+    <div>
+      <h2>明日は Day 2：S3 とデータレイク</h2>
+      <p>ML の学習データはどこに置く？ データの「置き場所」の設計がテーマです。</p>
+    </div>
+    <span class="day2">DAY 2 →</span>
+  </div>
+
+  <footer>
+    <p>MLA毎日解説 ― Day 1 ｜ Amazon SageMaker の全体像と ML ライフサイクル</p>
+  </footer>
+
+</div>
+
+<script>
+(function(){
+  var phases = [
+    {
+      title: "準備",
+      en: "PREPARE",
+      desc: "学習に使える形にデータを整える工程です。生データのままではモデルは学習できません。整形・ラベル付け・特徴量の管理がここに含まれます。",
+      feats: [
+        { name: "Data Wrangler", en: "SageMaker Data Wrangler", text: "ノーコード／ローコードでデータの整形・可視化・前処理ができるツール。CSV の加工などを画面操作で進められます。" },
+        { name: "Ground Truth", en: "SageMaker Ground Truth", text: "教師データ作りに欠かせない「ラベル付け（アノテーション）」を効率化する機能。人手＋自動ラベリングを組み合わせられます。" },
+        { name: "Feature Store", en: "SageMaker Feature Store", text: "特徴量（モデルが見るデータの項目）を一元管理し、学習と推論で同じ特徴量を再利用できるようにする仕組みです。" }
+      ],
+      tip: "試験ヒント：「ラベル付け」が出たら Ground Truth、「特徴量の再利用・一元管理」が出たら Feature Store が答えの候補です。"
+    },
+    {
+      title: "学習",
+      en: "TRAIN",
+      desc: "用意したデータでモデルを学習させる工程です。本格的にコードを書く方法から、自動でやってくれる方法まで、レベルに合わせて選べます。",
+      feats: [
+        { name: "Training Jobs", en: "SageMaker Training Jobs", text: "学習処理をジョブとして実行する基本機能。学習が終わればインスタンスは自動で止まるので、コスト管理もしやすいのが特徴です。" },
+        { name: "Autopilot", en: "SageMaker Autopilot", text: "表形式データから、特徴量エンジニアリングやモデル選定までを自動化する AutoML 機能。まず試したいときに便利です。" },
+        { name: "JumpStart", en: "SageMaker JumpStart", text: "事前学習済みモデルやサンプルをワンクリックで使い始められるハブ。ゼロから作らずにスタートできます。" }
+      ],
+      tip: "試験ヒント：「コードを書かずに自動でモデルを作りたい」→ Autopilot、「用意されたモデルから始めたい」→ JumpStart。"
+    },
+    {
+      title: "デプロイ",
+      en: "DEPLOY",
+      desc: "学習済みモデルを「使える状態」にして公開する工程です。推論の受け方によって方式が分かれるのが最大のポイントです。",
+      feats: [
+        { name: "リアルタイムエンドポイント", en: "Real-time Endpoint", text: "API 経由で 1 件ずつリクエストを受け、即座に推論結果を返す方式。常時起動したエンドポイントが待ち受けます。" },
+        { name: "バッチ変換", en: "Batch Transform", text: "大量のデータをまとめて一括推論する方式。S3 に置いたデータセット全体に推論をかけて結果を書き出します。" },
+        { name: "使い分けの軸", en: "Real-time vs Batch", text: "「すぐ答えがほしい・1件ずつ」ならリアルタイム、「件数が多い・急がない」ならバッチ変換。この判断軸が試験でよく問われます。" }
+      ],
+      tip: "試験ヒント：問題文に「リアルタイム」「低レイテンシ」「API で呼び出す」とあればエンドポイント、「一括」「大量データ」ならバッチ変換です。"
+    },
+    {
+      title: "運用",
+      en: "OPERATE",
+      desc: "公開したモデルを放っておかず、品質を保ち続ける工程です。モデルは時間とともにデータの傾向が変わり、精度が落ちることがあります。",
+      feats: [
+        { name: "Model Monitor", en: "SageMaker Model Monitor", text: "デプロイ済みモデルのデータドリフト（入力データの傾向の変化）や品質低下を検知して知らせる監視機能です。" },
+        { name: "Model Registry", en: "SageMaker Model Registry", text: "モデルのバージョンをカタログとして管理し、承認フローなどを挟んで本番に出すモデルを統制する仕組みです。" },
+        { name: "なぜ運用が要る？", en: "Drift & Governance", text: "現実のデータは変化します。「作って終わり」ではなく、劣化の検知とモデルの入れ替え管理まで含めて ML の仕事です。" }
+      ],
+      tip: "試験ヒント：「ドリフトを検知したい」→ Model Monitor、「モデルのバージョン管理・承認」→ Model Registry。"
+    }
+  ];
+
+  var panel = document.getElementById('phasePanel');
+  var tabs = Array.prototype.slice.call(document.querySelectorAll('.flow-step'));
+
+  function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
+
+  function renderPhase(i){
+    var p = phases[i];
+    var featsHtml = p.feats.map(function(f){
+      return '<div class="feat"><p class="fname"><span class="mono">' + esc(f.en) + '</span>' + esc(f.name) + '</p><p>' + esc(f.text) + '</p></div>';
+    }).join('');
+    panel.innerHTML =
+      '<h3>' + esc(p.title) + '<span class="en">' + esc(p.en) + '</span></h3>' +
+      '<p class="phase-desc">' + esc(p.desc) + '</p>' +
+      '<div class="feat-list">' + featsHtml + '</div>' +
+      '<p class="phase-tip"><b>🎯 </b>' + esc(p.tip) + '</p>';
+    tabs.forEach(function(t, idx){
+      var on = idx === i;
+      t.classList.toggle('active', on);
+      t.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+  }
+
+  tabs.forEach(function(t){
+    t.addEventListener('click', function(){ renderPhase(parseInt(t.getAttribute('data-phase'), 10)); });
+  });
+  renderPhase(0);
+
+  /* quiz */
+  var totalQ = document.querySelectorAll('.quiz-block').length;
+  var answered = {};
+  var correctCount = 0;
+
+  var explanations = [
+    { ok: "正解！ <b>リアルタイム推論エンドポイント</b> です。API で 1 件ずつ呼んですぐ結果がほしい場合はこちら。バッチ変換は大量データの一括推論用、Ground Truth はラベル付け用でしたね。",
+      ng: "残念、正解は <b>B：リアルタイム推論エンドポイント</b> です。「API 経由・1件ずつ・リアルタイム」がキーワード。バッチ変換は大量データの一括推論用です。" },
+    { ok: "正解！ <b>Amazon Bedrock</b> です。基盤モデルを「作らずに使う」なら Bedrock、自分で学習させて作るなら SageMaker、という区別がポイントでした。",
+      ng: "残念、正解は <b>B：Amazon Bedrock</b> です。SageMaker は自分でモデルを作る場所、Studio はその開発環境（IDE）の名前でしたね。" }
+  ];
+
+  document.querySelectorAll('.quiz-block').forEach(function(block){
+    var qi = parseInt(block.getAttribute('data-quiz'), 10);
+    var feedback = block.querySelector('.feedback');
+    block.querySelectorAll('.choice').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        if (answered[qi]) return;
+        answered[qi] = true;
+        var isCorrect = btn.getAttribute('data-correct') === 'true';
+        if (isCorrect) correctCount++;
+        block.querySelectorAll('.choice').forEach(function(b){
+          b.disabled = true;
+          if (b.getAttribute('data-correct') === 'true') b.classList.add('correct');
+        });
+        if (!isCorrect) btn.classList.add('wrong');
+        feedback.innerHTML = (isCorrect ? '⭕ ' : '❌ ') + (isCorrect ? explanations[qi].ok : explanations[qi].ng);
+        feedback.classList.add('show', isCorrect ? 'ok' : 'ng');
+        updateScore();
+      });
+    });
+  });
+
+  function updateScore(){
+    var done = Object.keys(answered).length;
+    var scoreEl = document.getElementById('quizScore');
+    if (done === totalQ) {
+      scoreEl.innerHTML = correctCount === totalQ
+        ? '🎉 結果：<span class="big">' + correctCount + ' / ' + totalQ + ' 問正解</span> ― 完璧！今日の Day 1 はバッチリだね。この調子で明日もいこう！'
+        : '結果：<span class="big">' + correctCount + ' / ' + totalQ + ' 問正解</span> ― 間違えたところは上の「似たものとの違い」と「推論方式の使い分け」を見直してみてね。';
+      scoreEl.classList.add('show');
+    }
+  }
+})();
+</script>
+</body>
+</html>

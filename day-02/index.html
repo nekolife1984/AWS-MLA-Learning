@@ -1,0 +1,830 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="light dark" />
+<link rel="icon" href="data:," />
+<title>MLA解説 Day 2 — Amazon S3 とデータレイク、ファイル形式</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;800;900&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f6f7f9;
+    --surface:#ffffff;
+    --surface-2:#fff7ed;
+    --surface-3:#f1f5f9;
+    --ink:#0f172a;
+    --ink-2:#334155;
+    --muted:#64748b;
+    --line:#e2e8f0;
+    --line-strong:#cbd5e1;
+    --orange:#ea580c;
+    --orange-bright:#ff9900;
+    --orange-soft:#ffedd5;
+    --teal:#0f766e;
+    --teal-soft:#ccfbf1;
+    --teal-line:#5eead4;
+    --navy:#13233f;
+    --navy-2:#1e3a5f;
+    --red:#b91c1c;
+    --red-soft:#fee2e2;
+    --green:#15803d;
+    --green-soft:#dcfce7;
+    --shadow:0 10px 30px rgba(15,23,42,.08);
+    --shadow-sm:0 2px 10px rgba(15,23,42,.06);
+    --radius:18px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0b1220;
+      --surface:#111c30;
+      --surface-2:#1c1a12;
+      --surface-3:#16233c;
+      --ink:#f1f5f9;
+      --ink-2:#cbd5e1;
+      --muted:#94a3b8;
+      --line:#24344f;
+      --line-strong:#334155;
+      --orange:#fb923c;
+      --orange-bright:#ff9900;
+      --orange-soft:#431407;
+      --teal:#2dd4bf;
+      --teal-soft:#042f2e;
+      --teal-line:#115e59;
+      --navy:#0f172a;
+      --navy-2:#1e293b;
+      --red:#fca5a5;
+      --red-soft:#450a0a;
+      --green:#86efac;
+      --green-soft:#052e16;
+      --shadow:0 10px 30px rgba(0,0,0,.35);
+      --shadow-sm:0 2px 10px rgba(0,0,0,.3);
+    }
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:"Noto Sans JP", system-ui, -apple-system, "Hiragino Kaku Gothic ProN", sans-serif;
+    line-height:1.75;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:var(--orange)}
+  .wrap{max-width:920px;margin:0 auto;padding:20px 18px 56px}
+
+  /* ---------- top meta ---------- */
+  .meta-row{
+    display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:6px 0 18px;
+  }
+  .pill{
+    display:inline-flex;align-items:center;gap:6px;
+    font-size:12.5px;font-weight:700;letter-spacing:.02em;
+    padding:5px 11px;border-radius:999px;border:1px solid var(--line);
+    background:var(--surface);color:var(--ink-2);
+  }
+  .pill.day{background:var(--navy);color:#fff;border-color:var(--navy)}
+  @media (prefers-color-scheme: dark){ .pill.day{background:var(--orange-bright);color:#111827;border-color:var(--orange-bright)} }
+  .pill .dot{width:7px;height:7px;border-radius:50%;background:var(--orange-bright);flex:none}
+  .mono{font-family:"IBM Plex Mono", ui-monospace, monospace}
+
+  /* ---------- hero ---------- */
+  .hero{
+    background:var(--navy);
+    color:#fff;
+    border-radius:24px;
+    padding:30px 28px 26px;
+    position:relative;
+    overflow:hidden;
+    box-shadow:var(--shadow);
+  }
+  .hero::after{
+    content:"";position:absolute;right:-70px;top:-70px;width:260px;height:260px;border-radius:50%;
+    border:44px solid rgba(255,153,0,.22);pointer-events:none;
+  }
+  .hero::before{
+    content:"";position:absolute;right:54px;bottom:-90px;width:160px;height:160px;border-radius:50%;
+    border:28px solid rgba(45,212,191,.14);pointer-events:none;
+  }
+  .hero-kicker{font-size:13px;font-weight:800;letter-spacing:.14em;color:#ffb25e;text-transform:uppercase;margin:0 0 8px;position:relative;z-index:1}
+  .hero h1{font-size:32px;line-height:1.35;font-weight:900;margin:0 0 12px;position:relative;z-index:1;letter-spacing:.01em}
+  .hero h1 .hl{color:var(--orange-bright)}
+  .hero p.lead{margin:0;color:#dbe6f3;font-size:15.5px;max-width:660px;position:relative;z-index:1}
+  .hero-tags{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px;position:relative;z-index:1}
+  .hero-tags span{font-size:12.5px;font-weight:700;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);color:#e2e8f0;padding:4px 10px;border-radius:999px}
+  @media (max-width:560px){ .hero h1{font-size:26px} .hero{padding:24px 20px 22px} }
+
+  .oneline{
+    margin-top:16px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+    padding:18px 20px;box-shadow:var(--shadow-sm);display:flex;gap:14px;align-items:flex-start;
+  }
+  .oneline .icon{
+    flex:none;width:42px;height:42px;border-radius:12px;background:var(--orange-soft);display:grid;place-items:center;font-size:21px;
+  }
+  .oneline h2{font-size:13px;letter-spacing:.08em;color:var(--orange);margin:0 0 4px;font-weight:800}
+  .oneline p{margin:0;font-size:16.5px;font-weight:700;line-height:1.6;color:var(--ink)}
+  .oneline p b{color:var(--orange)}
+
+  /* ---------- sections ---------- */
+  section{margin-top:36px}
+  .sec-head{display:flex;align-items:baseline;gap:12px;margin-bottom:6px;flex-wrap:wrap}
+  .sec-num{
+    font-family:"IBM Plex Mono",monospace;font-size:13px;font-weight:600;color:#fff;background:var(--orange);
+    width:28px;height:28px;border-radius:8px;display:inline-grid;place-items:center;flex:none;align-self:center;
+  }
+  .sec-head h2{font-size:22px;font-weight:900;margin:0;line-height:1.3}
+  .sec-sub{color:var(--muted);font-size:14px;margin:2px 0 16px 40px}
+  @media (max-width:560px){ .sec-sub{margin-left:0} .sec-head h2{font-size:20px} }
+
+  /* ---------- data lake diagram ---------- */
+  .lake{
+    background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+    padding:22px;box-shadow:var(--shadow-sm);
+  }
+  .lake-flow{display:grid;grid-template-columns:1fr auto 1.35fr auto 1fr;gap:10px;align-items:stretch}
+  @media (max-width:700px){
+    .lake-flow{grid-template-columns:1fr}
+    .lake-arrow{transform:rotate(90deg);height:20px}
+  }
+  .lake-col{display:flex;flex-direction:column;gap:10px}
+  .lake-col .col-label{font-size:12px;font-weight:800;letter-spacing:.08em;color:var(--muted);text-align:center}
+  .lake-box{
+    border:1.5px solid var(--line);border-radius:14px;padding:12px 13px;background:var(--surface-3);flex:1;
+    display:flex;flex-direction:column;justify-content:center;
+  }
+  .lake-box .lb-name{font-weight:800;font-size:14.5px;margin:0 0 2px}
+  .lake-box .lb-name .mono{font-size:12.5px;color:var(--orange);font-weight:600}
+  .lake-box p{margin:0;font-size:13px;color:var(--ink-2);line-height:1.6}
+  .lake-center{
+    border:2px solid var(--orange);border-radius:16px;background:var(--surface-2);
+    padding:16px 14px;display:flex;flex-direction:column;justify-content:center;text-align:center;
+  }
+  .lake-center .bucket-emoji{font-size:34px;line-height:1.2}
+  .lake-center h3{margin:4px 0 2px;font-size:18px;font-weight:900}
+  .lake-center h3 .mono{font-size:14px;color:var(--orange)}
+  .lake-center p{margin:0;font-size:13px;color:var(--ink-2);line-height:1.6}
+  .lake-arrow{display:grid;place-items:center;color:var(--line-strong);font-size:20px;font-weight:900}
+  .prefix-box{
+    margin-top:16px;background:var(--navy);border-radius:14px;padding:16px 18px;color:#e2e8f0;overflow:hidden;
+  }
+  @media (prefers-color-scheme: dark){ .prefix-box{background:#0a1628;border:1px solid var(--line)} }
+  .prefix-box .pb-label{font-size:12px;font-weight:800;letter-spacing:.1em;color:#ffb25e;margin:0 0 8px}
+  .prefix-box code{
+    display:block;font-family:"IBM Plex Mono",monospace;font-size:13px;line-height:1.9;color:#e2e8f0;white-space:normal;overflow-wrap:anywhere;word-break:break-all;padding-bottom:2px;
+  }
+  .prefix-box code .pfx{color:#7dd3fc}
+  .prefix-box code .seg{color:#fda4af}
+  .prefix-box p{margin:8px 0 0;font-size:13px;color:#cbd5e1;line-height:1.65}
+  .prefix-box p b{color:#fff}
+  .role-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px}
+  @media (max-width:700px){ .role-grid{grid-template-columns:1fr} }
+  .role{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:15px 16px;box-shadow:var(--shadow-sm)}
+  .role .r-name{font-weight:800;font-size:15px;margin:0 0 2px}
+  .role .r-name .mono{font-size:12.5px;color:var(--teal);display:block;font-weight:600}
+  .role p{margin:0;font-size:13.5px;color:var(--ink-2);line-height:1.65}
+  .role .r-tag{display:inline-block;font-size:11.5px;font-weight:800;background:var(--teal-soft);color:var(--teal);border-radius:999px;padding:2px 9px;margin-bottom:8px}
+
+  /* ---------- orientation visual ---------- */
+  .orient{
+    background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:22px;box-shadow:var(--shadow-sm);
+  }
+  .orient-toggle{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+  .orient-btn{
+    font-family:inherit;font-size:14px;font-weight:800;cursor:pointer;color:var(--ink-2);
+    background:var(--surface-3);border:1.5px solid var(--line);border-radius:999px;padding:8px 16px;
+    transition:border-color .15s, background .15s;
+  }
+  .orient-btn:hover{border-color:var(--orange)}
+  .orient-btn:focus-visible{outline:3px solid var(--orange-bright);outline-offset:2px}
+  .orient-btn.active{border-color:var(--orange);background:var(--surface-2);color:var(--ink)}
+  .orient-btn .mono{font-size:12px;color:var(--orange);font-weight:600;margin-left:4px}
+  .orient-body{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start}
+  @media (max-width:640px){ .orient-body{grid-template-columns:1fr} }
+  .mini-table{border:1.5px solid var(--line-strong);border-radius:10px;overflow:hidden}
+  .mini-table .mt-head,.mini-table .mt-row{display:grid;grid-template-columns:repeat(4,1fr)}
+  .mini-table .cell{
+    padding:7px 4px;font-size:12.5px;text-align:center;border-right:1px solid var(--line);border-bottom:1px solid var(--line);
+    font-family:"IBM Plex Mono",monospace;color:var(--ink-2);background:var(--surface);transition:background .2s,color .2s;
+  }
+  .mini-table .cell:last-child{border-right:none}
+  .mini-table .mt-row:last-child .cell{border-bottom:none}
+  .mini-table .mt-head .cell{font-weight:600;background:var(--surface-3);color:var(--ink);font-size:12px}
+  .mini-table .cell.read{background:var(--orange-soft);color:var(--orange);font-weight:600}
+  .mini-table .cell.skip{opacity:.38}
+  .orient-cap{font-size:12.5px;color:var(--muted);margin:8px 0 0;text-align:center}
+  .orient-desc h3{margin:0 0 6px;font-size:17px;font-weight:900}
+  .orient-desc p{margin:0 0 10px;font-size:14.5px;color:var(--ink-2)}
+  .orient-desc .cost-bar{margin-top:12px}
+  .cost-row{display:flex;align-items:center;gap:10px;margin:7px 0;font-size:13px;font-weight:700}
+  .cost-row .c-label{flex:none;width:118px;color:var(--ink-2)}
+  .cost-row .bar-track{flex:1;height:12px;border-radius:6px;background:var(--surface-3);overflow:hidden}
+  .cost-row .bar{height:100%;border-radius:6px}
+  .cost-row .bar.high{background:#dc2626;width:100%}
+  .cost-row .bar.low{background:var(--teal);width:22%}
+  .cost-row .c-val{flex:none;width:64px;text-align:right;font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--muted)}
+
+  /* ---------- format comparison ---------- */
+  .fmt-list{display:flex;flex-direction:column;gap:12px}
+  .fmt-card{
+    background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+    padding:18px 20px;box-shadow:var(--shadow-sm);display:grid;grid-template-columns:190px 1fr;gap:8px 20px;
+  }
+  @media (max-width:640px){ .fmt-card{grid-template-columns:1fr} }
+  .fmt-head{min-width:0}
+  .fmt-head h3{margin:0;font-size:19px;font-weight:900;line-height:1.3}
+  .fmt-head h3 .mono{font-size:13px;color:var(--muted);font-weight:600;display:block}
+  .fmt-badges{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+  .fbadge{font-size:11.5px;font-weight:800;border-radius:999px;padding:2px 9px;white-space:nowrap}
+  .fbadge.row{background:var(--red-soft);color:var(--red)}
+  .fbadge.col{background:var(--teal-soft);color:var(--teal)}
+  .fbadge.neutral{background:var(--surface-3);color:var(--ink-2);border:1px solid var(--line)}
+  .fbadge.star{background:var(--orange-soft);color:var(--orange)}
+  .fmt-body p{margin:0 0 6px;font-size:14.5px;color:var(--ink-2)}
+  .fmt-body p:last-child{margin-bottom:0}
+  .fmt-body b{color:var(--ink)}
+  .fmt-body .good{color:var(--green);font-weight:700}
+  .fmt-body .bad{color:var(--red);font-weight:700}
+  .fmt-card.highlight{border:1.5px solid var(--orange);background:var(--surface-2)}
+
+  .fmt-table-wrap{margin-top:18px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow-sm)}
+  .fmt-table{width:100%;border-collapse:collapse;font-size:13.5px}
+  .fmt-table th,.fmt-table td{padding:11px 13px;text-align:left;vertical-align:top;border-bottom:1px solid var(--line)}
+  .fmt-table thead th{background:var(--navy);color:#fff;font-weight:800;font-size:13px;white-space:nowrap}
+  @media (prefers-color-scheme: dark){ .fmt-table thead th{background:var(--navy-2)} }
+  .fmt-table tbody tr:last-child td{border-bottom:none}
+  .fmt-table td:first-child{font-weight:800;white-space:nowrap}
+  .fmt-table td .mono{font-size:12px;color:var(--orange);font-weight:600}
+  .fmt-table .o{color:var(--green);font-weight:800}
+  .fmt-table .x{color:var(--red);font-weight:800}
+  .fmt-table .t{color:var(--orange);font-weight:800}
+  @media (max-width:640px){
+    .fmt-table-wrap{border:none;box-shadow:none;background:transparent;overflow:visible}
+    .fmt-table,.fmt-table tbody,.fmt-table tr,.fmt-table td{display:block;width:100%}
+    .fmt-table thead{display:none}
+    .fmt-table tr{background:var(--surface);border:1px solid var(--line);border-radius:14px;margin-bottom:10px;padding:8px 4px;box-shadow:var(--shadow-sm)}
+    .fmt-table td{border-bottom:none;padding:6px 14px}
+    .fmt-table td:first-child{font-size:16px;padding-top:10px}
+    .fmt-table td::before{content:attr(data-label);display:block;font-size:11px;font-weight:800;letter-spacing:.06em;color:var(--muted);margin-bottom:1px}
+    .fmt-table td:first-child::before{display:none}
+  }
+
+  /* ---------- exam points ---------- */
+  .exam-list{display:flex;flex-direction:column;gap:12px}
+  .exam-item{
+    display:flex;gap:14px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;box-shadow:var(--shadow-sm);
+  }
+  .exam-item .badge{
+    flex:none;width:34px;height:34px;border-radius:50%;background:var(--navy);color:#fff;font-weight:800;font-size:15px;display:grid;place-items:center;margin-top:2px;
+  }
+  @media (prefers-color-scheme: dark){ .exam-item .badge{background:var(--orange-bright);color:#111827} }
+  .exam-item h3{margin:0 0 4px;font-size:16px;font-weight:800}
+  .exam-item p{margin:0;font-size:14.5px;color:var(--ink-2)}
+  .exam-item code,.role code,.compare code,.fmt-body code{
+    font-family:"IBM Plex Mono",monospace;font-size:.88em;background:var(--surface-3);border:1px solid var(--line);
+    padding:1px 6px;border-radius:6px;color:var(--orange);font-weight:600;white-space:nowrap;
+  }
+
+  /* ---------- compare ---------- */
+  .compare{display:flex;flex-direction:column;gap:14px}
+  .compare-row{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow-sm)}
+  .compare-vs{display:grid;grid-template-columns:1fr auto 1fr}
+  @media (max-width:640px){ .compare-vs{grid-template-columns:1fr} .vs-badge{margin:0 auto} }
+  .compare-cell{padding:18px 20px}
+  .compare-cell.a{background:var(--surface-2)}
+  .compare-cell h3{margin:0 0 5px;font-size:16.5px;font-weight:900}
+  .compare-cell p{margin:0;font-size:14px;color:var(--ink-2)}
+  .compare-cell ul{margin:6px 0 0;padding-left:19px;font-size:14px;color:var(--ink-2)}
+  .compare-cell li{margin:3px 0}
+  .vs-badge{align-self:center;width:38px;height:38px;border-radius:50%;background:var(--ink);color:var(--bg);font-weight:900;font-size:12px;display:grid;place-items:center;letter-spacing:.05em;z-index:1;margin:0 -6px}
+  .compare-note{padding:12px 20px;border-top:1px dashed var(--line-strong);font-size:13.5px;color:var(--ink-2);background:var(--surface)}
+  .compare-note b{color:var(--orange)}
+
+  /* ---------- quiz ---------- */
+  .quiz{
+    background:var(--navy);color:#fff;border-radius:24px;padding:26px 24px;box-shadow:var(--shadow);position:relative;overflow:hidden;
+  }
+  .quiz::after{content:"?";position:absolute;right:14px;top:-28px;font-size:150px;font-weight:900;color:rgba(255,255,255,.06);line-height:1;pointer-events:none}
+  .quiz .q-label{font-size:12.5px;font-weight:800;letter-spacing:.12em;color:#ffb25e;margin:0 0 8px}
+  .quiz h2{font-size:20px;font-weight:900;margin:0 0 6px;line-height:1.45}
+  .quiz .q-sub{color:#cbd5e1;font-size:13.5px;margin:0 0 18px}
+  .quiz-block{margin-bottom:22px;position:relative;z-index:1}
+  .quiz-block:last-child{margin-bottom:0}
+  .quiz-q{font-weight:700;font-size:15.5px;margin:0 0 12px;line-height:1.65}
+  .quiz-q .qno{color:var(--orange-bright);font-family:"IBM Plex Mono",monospace;margin-right:6px}
+  .choices{display:flex;flex-direction:column;gap:9px}
+  .choice{
+    text-align:left;font-family:inherit;font-size:14.5px;font-weight:600;color:#e2e8f0;
+    background:rgba(255,255,255,.07);border:1.5px solid rgba(255,255,255,.22);border-radius:12px;
+    padding:12px 15px;cursor:pointer;display:flex;gap:10px;align-items:flex-start;line-height:1.55;
+  }
+  .choice:hover{border-color:var(--orange-bright)}
+  .choice:focus-visible{outline:3px solid var(--orange-bright);outline-offset:2px}
+  .choice .letter{flex:none;width:24px;height:24px;border-radius:7px;background:rgba(255,255,255,.14);display:grid;place-items:center;font-size:13px;font-weight:800;margin-top:1px}
+  .choice.correct{border-color:#4ade80;background:rgba(74,222,128,.16);color:#fff}
+  .choice.correct .letter{background:#22c55e;color:#fff}
+  .choice.wrong{border-color:#f87171;background:rgba(248,113,113,.14)}
+  .choice.wrong .letter{background:#dc2626;color:#fff}
+  .choice:disabled{cursor:default;opacity:.92}
+  .feedback{display:none;margin-top:12px;border-radius:12px;padding:12px 15px;font-size:14px;line-height:1.65}
+  .feedback.show{display:block}
+  .feedback.ok{background:rgba(74,222,128,.15);border:1px solid rgba(74,222,128,.4)}
+  .feedback.ng{background:rgba(248,113,113,.13);border:1px solid rgba(248,113,113,.4)}
+  .feedback b{color:#fff}
+  .quiz-score{margin-top:18px;font-size:14px;font-weight:700;color:#e2e8f0;display:none;position:relative;z-index:1}
+  .quiz-score.show{display:block}
+  .quiz-score .big{color:var(--orange-bright);font-size:18px}
+
+  /* ---------- next / footer ---------- */
+  .next-card{
+    margin-top:36px;display:flex;gap:16px;align-items:center;background:var(--surface);border:1.5px dashed var(--line-strong);
+    border-radius:var(--radius);padding:20px 22px;
+  }
+  .next-card .n-emoji{font-size:32px;flex:none}
+  .next-card h2{margin:0 0 2px;font-size:16.5px;font-weight:900}
+  .next-card p{margin:0;font-size:14px;color:var(--muted)}
+  .next-card .day3{margin-left:auto;flex:none;font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:13px;color:var(--orange);border:1px solid var(--orange);border-radius:999px;padding:5px 12px;white-space:nowrap}
+  @media (max-width:560px){ .next-card{flex-wrap:wrap} .next-card .day3{margin-left:0} }
+  footer{margin-top:28px;text-align:center;color:var(--muted);font-size:12.5px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="meta-row" aria-label="メタ情報">
+    <span class="pill day">DAY 2 / 84</span>
+    <span class="pill"><span class="dot"></span>AWS MLA-C01 対策</span>
+    <span class="pill">⏱ 読了目安 約4分</span>
+    <span class="pill mono">2026.10.28 WED</span>
+  </div>
+
+  <header class="hero">
+    <p class="hero-kicker">Machine Learning — Lesson 02</p>
+    <h1>Amazon <span class="hl">S3</span> とデータレイク、<br>ファイル形式の選び方</h1>
+    <p class="lead">ML のデータはまず「どこに・どの形式で置くか」が勝負。CSV / JSON / Parquet / ORC / RecordIO — 形式を間違えると、学習の速度もコストも大きく変わります。</p>
+    <div class="hero-tags">
+      <span># データレイク</span><span># オブジェクトストレージ</span><span># 列指向</span><span># Parquet</span>
+    </div>
+  </header>
+
+  <div class="oneline">
+    <div class="icon" aria-hidden="true">💡</div>
+    <div>
+      <h2>一言で言うと</h2>
+      <p>Amazon S3 は、<b>ML のデータレイクの中心になるオブジェクトストレージ</b>で、形式を間違えると学習コストも速度も大きく変わる。</p>
+    </div>
+  </div>
+
+  <!-- 01 data lake -->
+  <section aria-labelledby="sec1">
+    <div class="sec-head"><span class="sec-num">01</span><h2 id="sec1">データレイク ― すべてのデータは S3 に集まる</h2></div>
+    <p class="sec-sub">生データから加工済みデータまでを S3 にまとめて置くのがデータレイク。SageMaker も Glue も Athena も、みんな S3 から読み書きします。</p>
+
+    <div class="lake">
+      <div class="lake-flow">
+        <div class="lake-col">
+          <span class="col-label">ためるデータ</span>
+          <div class="lake-box">
+            <p class="lb-name">📥 生データ <span class="mono">RAW</span></p>
+            <p>ログ、画像、センサー値など、手を加えていない元のデータ。</p>
+          </div>
+          <div class="lake-box">
+            <p class="lb-name">✨ 加工済みデータ <span class="mono">PROCESSED</span></p>
+            <p>クレンジングや変換を終え、分析・学習にすぐ使えるデータ。</p>
+          </div>
+        </div>
+        <div class="lake-arrow" aria-hidden="true">›</div>
+        <div class="lake-center">
+          <div class="bucket-emoji" aria-hidden="true">🪣</div>
+          <h3>Amazon S3 <span class="mono">DATA LAKE</span></h3>
+          <p>バケット ＋ キー（プレフィックス）で管理する、データレイクの中心地。</p>
+        </div>
+        <div class="lake-arrow" aria-hidden="true">›</div>
+        <div class="lake-col">
+          <span class="col-label">読み書きするサービス</span>
+          <div class="lake-box">
+            <p class="lb-name">🔎 Athena <span class="mono">QUERY</span></p>
+            <p>S3 上のデータに SQL でクエリする。</p>
+          </div>
+          <div class="lake-box">
+            <p class="lb-name">🧰 Glue <span class="mono">ETL / CATALOG</span></p>
+            <p>データの変換とカタログ管理を担当。</p>
+          </div>
+          <div class="lake-box">
+            <p class="lb-name">🤖 SageMaker <span class="mono">TRAIN</span></p>
+            <p>S3 のデータを読み込んでモデルを学習。</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="prefix-box">
+        <p class="pb-label">PREFIX の切り方（例）</p>
+        <code>s3://ml-lake/<span class="pfx">raw</span>/logs/<span class="seg">2026/10/28</span>/access-001.parquet</code>
+        <code>s3://ml-lake/<span class="pfx">processed</span>/training/<span class="seg">category=sales</span>/data.parquet</code>
+        <p>日付やカテゴリでプレフィックスを分けておくと、<b>必要な範囲だけを絞り込んで読める</b>ので、検索も集計も速くなります。</p>
+      </div>
+    </div>
+
+    <div class="role-grid" aria-label="S3まわりの役割分担">
+      <div class="role">
+        <span class="r-tag">置く</span>
+        <p class="r-name"><span class="mono">Amazon S3</span>ストレージ担当</p>
+        <p>データを安く・大量にためる場所そのもの。クエリや変換の機能は持ちません。</p>
+      </div>
+      <div class="role">
+        <span class="r-tag">探す・聞く</span>
+        <p class="r-name"><span class="mono">Athena / Glue Data Catalog</span>クエリ＆カタログ担当</p>
+        <p>Athena が SQL クエリを、Glue Data Catalog が「どのデータがどこにあるか」の目録を担当します。</p>
+      </div>
+      <div class="role">
+        <span class="r-tag">変える</span>
+        <p class="r-name"><span class="mono">AWS Glue</span>変換（ETL）担当</p>
+        <p>CSV を Parquet に変換する、形式を整える、といった加工処理は Glue の仕事です。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 02 orientation -->
+  <section aria-labelledby="sec2">
+    <div class="sec-head"><span class="sec-num">02</span><h2 id="sec2">行指向 vs 列指向 ― なぜ Parquet が速くて安いのか</h2></div>
+    <p class="sec-sub">Athena の料金は「読んだデータ量」で決まります。だから「必要な列だけ読めるか」が、そのまま速度とコストの差になります。切り替えて比べてみてください。</p>
+
+    <div class="orient">
+      <div class="orient-toggle" role="tablist" aria-label="データの持ち方の切り替え">
+        <button class="orient-btn active" role="tab" aria-selected="true" data-orient="row">行指向<span class="mono">CSV / JSON</span></button>
+        <button class="orient-btn" role="tab" aria-selected="false" data-orient="col">列指向<span class="mono">Parquet / ORC</span></button>
+      </div>
+      <div class="orient-body">
+        <div>
+          <div class="mini-table" id="miniTable" aria-hidden="true"></div>
+          <p class="orient-cap" id="orientCap"></p>
+        </div>
+        <div class="orient-desc" id="orientDesc" aria-live="polite"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 03 formats -->
+  <section aria-labelledby="sec3">
+    <div class="sec-head"><span class="sec-num">03</span><h2 id="sec3">ファイル形式 5つを比べる</h2></div>
+    <p class="sec-sub">それぞれ「得意なこと」と「弱点」がはっきり分かれています。試験では用途から形式を選ばせる問題が定番です。</p>
+
+    <div class="fmt-list">
+      <div class="fmt-card">
+        <div class="fmt-head">
+          <h3>CSV<span class="mono">Comma-Separated Values</span></h3>
+          <div class="fmt-badges"><span class="fbadge row">行指向</span><span class="fbadge neutral">テキスト</span></div>
+        </div>
+        <div class="fmt-body">
+          <p><span class="good">強み：</span>人が見やすくて手軽。Excel でも開けるし、とりあえず置くには一番簡単。</p>
+          <p><span class="bad">弱み：</span>圧縮と型情報が弱い。全部テキストなので容量がかさみ、列を絞って読むこともできません。</p>
+        </div>
+      </div>
+
+      <div class="fmt-card">
+        <div class="fmt-head">
+          <h3>JSON<span class="mono">JavaScript Object Notation</span></h3>
+          <div class="fmt-badges"><span class="fbadge row">行指向</span><span class="fbadge neutral">半構造化</span></div>
+        </div>
+        <div class="fmt-body">
+          <p><span class="good">強み：</span>半構造化データ向きで柔軟。項目が増減するログや API のデータを受け止めやすい。</p>
+          <p><span class="bad">弱み：</span>キー名を毎行繰り返すため容量が大きくなりがち。大量データの繰り返し集計には不向きです。</p>
+        </div>
+      </div>
+
+      <div class="fmt-card highlight">
+        <div class="fmt-head">
+          <h3>Parquet<span class="mono">Apache Parquet</span></h3>
+          <div class="fmt-badges"><span class="fbadge col">列指向</span><span class="fbadge star">★ 分析・学習の定番</span></div>
+        </div>
+        <div class="fmt-body">
+          <p><span class="good">強み：</span>列指向で圧縮に強く、必要な列だけ読める。型情報（スキーマ）も保持します。</p>
+          <p><b>使いどころ：</b>Athena や SageMaker での分析・学習の定番形式。迷ったらまず Parquet を思い浮かべてください。</p>
+        </div>
+      </div>
+
+      <div class="fmt-card">
+        <div class="fmt-head">
+          <h3>ORC<span class="mono">Optimized Row Columnar</span></h3>
+          <div class="fmt-badges"><span class="fbadge col">列指向</span><span class="fbadge neutral">Hive 系</span></div>
+        </div>
+        <div class="fmt-body">
+          <p><span class="good">強み：</span>Parquet に似た列指向形式で、圧縮と読み取りの速さに優れます。</p>
+          <p><b>使いどころ：</b>Hive 系のエコシステムでよく使われる形式。Athena でも読み取りに対応しています。</p>
+        </div>
+      </div>
+
+      <div class="fmt-card">
+        <div class="fmt-head">
+          <h3>RecordIO<span class="mono">RecordIO-Protobuf</span></h3>
+          <div class="fmt-badges"><span class="fbadge neutral">バイナリ</span><span class="fbadge star">SageMaker 専用寄り</span></div>
+        </div>
+        <div class="fmt-body">
+          <p><span class="good">強み：</span>SageMaker 向けの Protobuf 形式。<code>Pipe モード</code>でデータをストリーミングしながら高速に学習できます。</p>
+          <p><b>使いどころ：</b>大規模データの学習を効率化したいとき。分析用途ではなく「学習専用」と捉えるのがポイントです。</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="fmt-table-wrap">
+      <table class="fmt-table" aria-label="ファイル形式の比較表">
+        <thead>
+          <tr><th scope="col">形式</th><th scope="col">向き</th><th scope="col">圧縮・型情報</th><th scope="col">主な使いどころ</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>CSV</td>
+            <td data-label="向き">行指向</td>
+            <td data-label="圧縮・型情報"><span class="x">✕</span> 弱い（型情報なし）</td>
+            <td data-label="主な使いどころ">手軽な入出力・人が確認する用途</td>
+          </tr>
+          <tr>
+            <td>JSON</td>
+            <td data-label="向き">行指向</td>
+            <td data-label="圧縮・型情報"><span class="t">△</span> 柔軟だが容量が大きい</td>
+            <td data-label="主な使いどころ">半構造化データ・ログの受け皿</td>
+          </tr>
+          <tr>
+            <td>Parquet</td>
+            <td data-label="向き">列指向</td>
+            <td data-label="圧縮・型情報"><span class="o">◎</span> 圧縮に強く型情報あり</td>
+            <td data-label="主な使いどころ">Athena / Spark / SageMaker の定番</td>
+          </tr>
+          <tr>
+            <td>ORC</td>
+            <td data-label="向き">列指向</td>
+            <td data-label="圧縮・型情報"><span class="o">◎</span> 圧縮に強く型情報あり</td>
+            <td data-label="主な使いどころ">Hive 系エコシステム</td>
+          </tr>
+          <tr>
+            <td>RecordIO</td>
+            <td data-label="向き">―（Protobuf）</td>
+            <td data-label="圧縮・型情報"><span class="o">○</span> 学習向けに最適化</td>
+            <td data-label="主な使いどころ">SageMaker の Pipe モード学習</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 04 exam -->
+  <section aria-labelledby="sec4">
+    <div class="sec-head"><span class="sec-num">04</span><h2 id="sec4">試験で問われるポイント</h2></div>
+    <p class="sec-sub">シナリオの「やりたいこと」から、置き場所と形式を即答できるようにしましょう。</p>
+    <div class="exam-list">
+      <div class="exam-item">
+        <div class="badge">1</div>
+        <div>
+          <h3>大量データを安くためて分析したい → S3 データレイク</h3>
+          <p>「大量の構造化・半構造化データを安くためて、Athena や SageMaker で分析したい」という要件が出たら、答えは <code>S3</code> を中心にしたデータレイク構成です。</p>
+        </div>
+      </div>
+      <div class="exam-item">
+        <div class="badge">2</div>
+        <div>
+          <h3>Athena で読むなら、列指向の Parquet / ORC</h3>
+          <p>行指向の CSV / JSON より、列指向の <code>Parquet</code> / <code>ORC</code> の方が速くて安い。理由は「読む列だけ読めるから」。Athena は読んだデータ量で課金されるので、ここが直結します。</p>
+        </div>
+      </div>
+      <div class="exam-item">
+        <div class="badge">3</div>
+        <div>
+          <h3>RecordIO ＋ Pipe モード = 高速な大規模学習</h3>
+          <p>SageMaker の学習で <code>RecordIO</code> と <code>Pipe モード</code> が出てきたら、「大規模データをストリーミングで高速に学習」がヒント。データを全部ダウンロードし切る前に学習を始められるのが強みです。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 05 compare -->
+  <section aria-labelledby="sec5">
+    <div class="sec-head"><span class="sec-num">05</span><h2 id="sec5">間違えやすい！似たものとの違い</h2></div>
+    <p class="sec-sub">「S3 が何でもやってくれる」という思い込みが一番の落とし穴です。役割分担で覚えましょう。</p>
+    <div class="compare">
+      <div class="compare-row">
+        <div class="compare-vs">
+          <div class="compare-cell a">
+            <h3>Amazon S3</h3>
+            <p>データを<b>ためる場所</b>（オブジェクトストレージ）。それ自体は<b>データベースではありません</b>。</p>
+          </div>
+          <div class="vs-badge" aria-hidden="true">VS</div>
+          <div class="compare-cell">
+            <h3>まわりのサービス</h3>
+            <ul>
+              <li>クエリ → <b>Athena</b></li>
+              <li>変換（ETL） → <b>Glue</b></li>
+              <li>カタログ（目録） → <b>Glue Data Catalog</b></li>
+            </ul>
+          </div>
+        </div>
+        <div class="compare-note">🔑 見分け方：S3 は「倉庫」。探す・聞く・変えるは、それぞれ専門のサービスが担当します。</div>
+      </div>
+
+      <div class="compare-row">
+        <div class="compare-vs">
+          <div class="compare-cell a">
+            <h3>Parquet</h3>
+            <p>列指向形式。<b>Athena / Spark 系の定番</b>で、AWS の分析・学習シーンでまず名前が挙がる形式。</p>
+          </div>
+          <div class="vs-badge" aria-hidden="true">VS</div>
+          <div class="compare-cell">
+            <h3>ORC</h3>
+            <p>こちらも列指向形式。<b>Hive 系</b>のエコシステムでよく使われてきた形式。</p>
+          </div>
+        </div>
+        <div class="compare-note">🔑 見分け方：どちらも列指向。「Parquet ＝ Athena / Spark 系の定番」「ORC ＝ Hive 系」とセットで覚えると見分けやすいです。</div>
+      </div>
+
+      <div class="compare-row">
+        <div class="compare-vs">
+          <div class="compare-cell a">
+            <h3>S3 Select</h3>
+            <p>S3 の中身を<b>少しだけ絞って取り出す</b>ための機能。必要な部分だけ先に絞り込めます。</p>
+          </div>
+          <div class="vs-badge" aria-hidden="true">VS</div>
+          <div class="compare-cell">
+            <h3>SQL データベース化？</h3>
+            <p>違います。S3 Select があっても、<b>S3 そのものが SQL データベースになるわけではありません</b>。本格的なクエリは Athena の担当です。</p>
+          </div>
+        </div>
+        <div class="compare-note">🔑 見分け方：S3 Select は「倉庫の中で少しだけ絞る」機能。SQL で分析したいなら Athena を選びます。</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- quiz -->
+  <section aria-labelledby="quizTitle">
+    <div class="quiz">
+      <p class="q-label">CHECK QUIZ — 確認クイズ</p>
+      <h2 id="quizTitle">今日の理解度チェック（全3問）</h2>
+      <p class="q-sub">選択肢をタップすると、その場で答え合わせができます。</p>
+
+      <div class="quiz-block" data-quiz="0">
+        <p class="quiz-q"><span class="qno">Q1.</span>Athena で大きなログを繰り返し集計するとき、CSV のまま置くより何に変換すると速くて安くなりやすい？</p>
+        <div class="choices">
+          <button class="choice" data-correct="false"><span class="letter">A</span><span>JSON（半構造化形式）</span></button>
+          <button class="choice" data-correct="true"><span class="letter">B</span><span>Parquet（列指向形式）</span></button>
+          <button class="choice" data-correct="false"><span class="letter">C</span><span>RecordIO（Protobuf形式）</span></button>
+        </div>
+        <div class="feedback" role="status"></div>
+      </div>
+
+      <div class="quiz-block" data-quiz="1">
+        <p class="quiz-q"><span class="qno">Q2.</span>SageMaker で大規模データをストリーミングしながら高速に学習したいときの組み合わせは？</p>
+        <div class="choices">
+          <button class="choice" data-correct="false"><span class="letter">A</span><span>CSV ＋ バッチ変換</span></button>
+          <button class="choice" data-correct="false"><span class="letter">B</span><span>JSON ＋ S3 Select</span></button>
+          <button class="choice" data-correct="true"><span class="letter">C</span><span>RecordIO ＋ Pipe モード</span></button>
+        </div>
+        <div class="feedback" role="status"></div>
+      </div>
+
+      <div class="quiz-block" data-quiz="2">
+        <p class="quiz-q"><span class="qno">Q3.</span>S3 に置いたデータへ SQL クエリをかけたいとき、担当するサービスはどれ？</p>
+        <div class="choices">
+          <button class="choice" data-correct="true"><span class="letter">A</span><span>Amazon Athena</span></button>
+          <button class="choice" data-correct="false"><span class="letter">B</span><span>Amazon S3 自体（ストレージ機能）</span></button>
+          <button class="choice" data-correct="false"><span class="letter">C</span><span>SageMaker Feature Store</span></button>
+        </div>
+        <div class="feedback" role="status"></div>
+      </div>
+
+      <p class="quiz-score" id="quizScore"></p>
+    </div>
+  </section>
+
+  <div class="next-card">
+    <div class="n-emoji" aria-hidden="true">🗂️</div>
+    <div>
+      <h2>今日の合言葉：「置き場所は S3、形式は Parquet」</h2>
+      <p>データレイクの中心と形式選びの軸が掴めれば、Day 2 はクリアです。明日も朝の解説で会いましょう。</p>
+    </div>
+    <span class="day3">DAY 3 →</span>
+  </div>
+
+  <footer>
+    <p>MLA毎日解説 ― Day 2 ｜ Amazon S3 とデータレイク、ファイル形式（CSV / JSON / Parquet / ORC / RecordIO）</p>
+  </footer>
+
+</div>
+
+<script>
+(function(){
+  /* ---------- orientation visual ---------- */
+  var cols = ["user_id", "date", "amount", "region"];
+  var rows = [
+    ["u001", "10/01", "1,200", "東京"],
+    ["u002", "10/01", "3,400", "大阪"],
+    ["u003", "10/02", "980", "名古屋"],
+    ["u004", "10/02", "2,150", "福岡"]
+  ];
+  var tableEl = document.getElementById('miniTable');
+  var capEl = document.getElementById('orientCap');
+  var descEl = document.getElementById('orientDesc');
+  var btns = Array.prototype.slice.call(document.querySelectorAll('.orient-btn'));
+
+  function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
+
+  function buildTable(mode){
+    var html = '<div class="mt-head">' + cols.map(function(c){ return '<div class="cell">' + esc(c) + '</div>'; }).join('') + '</div>';
+    rows.forEach(function(r){
+      html += '<div class="mt-row">' + r.map(function(v, ci){
+        var cls = 'cell';
+        if (mode === 'row') cls += ' read';
+        else cls += (ci === 2 ? ' read' : ' skip');
+        return '<div class="' + cls + '">' + esc(v) + '</div>';
+      }).join('') + '</div>';
+    });
+    tableEl.innerHTML = html;
+    capEl.textContent = mode === 'row'
+      ? '集計したいのは amount 列だけでも、全列・全行を読んでしまう'
+      : 'amount 列だけを選んで読める ― 読む量がそのまま減る';
+  }
+
+  var orientData = {
+    row: {
+      title: "行指向（CSV / JSON）",
+      desc: "1行分のデータを丸ごと並べて保存する持ち方です。amount 列だけを集計したい場合でも、行を丸ごと読まないと取り出せないため、関係ない列まで全部読むことになります。Athena では「読んだ量 ＝ 料金」なので、そのままコストと時間のロスです。",
+      barLabel: "Athena の読み取り量"
+    },
+    col: {
+      title: "列指向（Parquet / ORC）",
+      desc: "列ごとにまとめて保存する持ち方です。集計に必要な amount 列だけを選んで読めるので、読み取り量が大きく減り、速くて安くなります。さらに圧縮も効くため、S3 に置く容量自体も小さくなります。これが「Athena で読むなら Parquet / ORC」と言われる理由です。",
+      barLabel: "Athena の読み取り量"
+    }
+  };
+
+  function renderOrient(mode){
+    buildTable(mode);
+    var d = orientData[mode];
+    descEl.innerHTML =
+      '<h3>' + esc(d.title) + '</h3>' +
+      '<p>' + esc(d.desc) + '</p>' +
+      '<div class="cost-bar">' +
+        '<div class="cost-row"><span class="c-label">行指向 CSV/JSON</span><span class="bar-track"><span class="bar high" style="display:block"></span></span><span class="c-val">100%</span></div>' +
+        '<div class="cost-row"><span class="c-label">列指向 Parquet</span><span class="bar-track"><span class="bar low" style="display:block"></span></span><span class="c-val">必要な列だけ</span></div>' +
+      '</div>' +
+      '<p style="font-size:12.5px;color:var(--muted);margin-top:8px">※ バーは「集計に不要な列まで読んでしまう」イメージ図です。実際の削減率はデータによります。</p>';
+    btns.forEach(function(b){
+      var on = b.getAttribute('data-orient') === mode;
+      b.classList.toggle('active', on);
+      b.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+  }
+
+  btns.forEach(function(b){
+    b.addEventListener('click', function(){ renderOrient(b.getAttribute('data-orient')); });
+  });
+  renderOrient('row');
+
+  /* ---------- quiz ---------- */
+  var totalQ = document.querySelectorAll('.quiz-block').length;
+  var answered = {};
+  var correctCount = 0;
+
+  var explanations = [
+    { ok: "正解！ <b>Parquet（列指向形式）</b> に変換します。必要な列だけ読めるので読み取り量が減り、Athena では速さと安さがそのまま両立します。",
+      ng: "残念、正解は <b>B：Parquet（列指向形式）</b> です。JSON も行指向なので効果は薄く、RecordIO は SageMaker の学習用形式でしたね。" },
+    { ok: "正解！ <b>RecordIO ＋ Pipe モード</b> です。SageMaker 向けの Protobuf 形式で、データをストリーミングしながら学習できる組み合わせでした。",
+      ng: "残念、正解は <b>C：RecordIO ＋ Pipe モード</b> です。「SageMaker の大規模・高速学習」と出たら、この組み合わせが鉄板です。" },
+    { ok: "正解！ クエリ担当は <b>Amazon Athena</b> です。S3 はデータをためる場所で、データベースではありません。変換は Glue、カタログは Glue Data Catalog の担当でしたね。",
+      ng: "残念、正解は <b>A：Amazon Athena</b> です。S3 はストレージ担当で、それ自体はデータベースではありません。クエリは Athena、変換は Glue と役割で分けて覚えましょう。" }
+  ];
+
+  document.querySelectorAll('.quiz-block').forEach(function(block){
+    var qi = parseInt(block.getAttribute('data-quiz'), 10);
+    var feedback = block.querySelector('.feedback');
+    block.querySelectorAll('.choice').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        if (answered[qi]) return;
+        answered[qi] = true;
+        var isCorrect = btn.getAttribute('data-correct') === 'true';
+        if (isCorrect) correctCount++;
+        block.querySelectorAll('.choice').forEach(function(b){
+          b.disabled = true;
+          if (b.getAttribute('data-correct') === 'true') b.classList.add('correct');
+        });
+        if (!isCorrect) btn.classList.add('wrong');
+        feedback.innerHTML = (isCorrect ? '⭕ ' : '❌ ') + (isCorrect ? explanations[qi].ok : explanations[qi].ng);
+        feedback.classList.add('show', isCorrect ? 'ok' : 'ng');
+        updateScore();
+      });
+    });
+  });
+
+  function updateScore(){
+    var done = Object.keys(answered).length;
+    var scoreEl = document.getElementById('quizScore');
+    if (done === totalQ) {
+      scoreEl.innerHTML = correctCount === totalQ
+        ? '🎉 結果：<span class="big">' + correctCount + ' / ' + totalQ + ' 問正解</span> ― 完璧！「置き場所は S3、形式は Parquet」がしっかり身についたね。'
+        : '結果：<span class="big">' + correctCount + ' / ' + totalQ + ' 問正解</span> ― 間違えたところは「行指向 vs 列指向」と「役割分担」のセクションを見直してみてね。';
+      scoreEl.classList.add('show');
+    }
+  }
+})();
+</script>
+</body>
+</html>
