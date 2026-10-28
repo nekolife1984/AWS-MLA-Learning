@@ -1,0 +1,651 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="light dark" />
+<link rel="icon" href="data:," />
+<title>MLA解説 Day 3 — Amazon Kinesis とストリーミングデータ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;800;900&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f6f7f9;
+    --surface:#ffffff;
+    --surface-2:#fff7ed;
+    --surface-3:#f1f5f9;
+    --ink:#0f172a;
+    --ink-2:#334155;
+    --muted:#64748b;
+    --line:#e2e8f0;
+    --line-strong:#cbd5e1;
+    --orange:#ea580c;
+    --orange-bright:#ff9900;
+    --orange-soft:#ffedd5;
+    --teal:#0f766e;
+    --teal-soft:#ccfbf1;
+    --navy:#13233f;
+    --navy-2:#1e3a5f;
+    --red:#b91c1c;
+    --red-soft:#fee2e2;
+    --green:#15803d;
+    --green-soft:#dcfce7;
+    --shadow:0 10px 30px rgba(15,23,42,.08);
+    --shadow-sm:0 2px 10px rgba(15,23,42,.06);
+    --radius:18px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0b1220;
+      --surface:#111c30;
+      --surface-2:#1c1a12;
+      --surface-3:#16233c;
+      --ink:#f1f5f9;
+      --ink-2:#cbd5e1;
+      --muted:#94a3b8;
+      --line:#24344f;
+      --line-strong:#334155;
+      --orange:#fb923c;
+      --orange-bright:#ff9900;
+      --orange-soft:#431407;
+      --teal:#2dd4bf;
+      --teal-soft:#042f2e;
+      --navy:#0f172a;
+      --navy-2:#1e293b;
+      --red:#fca5a5;
+      --red-soft:#450a0a;
+      --green:#86efac;
+      --green-soft:#052e16;
+      --shadow:0 10px 30px rgba(0,0,0,.35);
+      --shadow-sm:0 2px 10px rgba(0,0,0,.3);
+    }
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:"Noto Sans JP", system-ui, -apple-system, "Hiragino Kaku Gothic ProN", sans-serif;
+    line-height:1.75;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:var(--orange)}
+  .wrap{max-width:920px;margin:0 auto;padding:20px 18px 56px}
+
+  /* ---------- top meta ---------- */
+  .meta-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:6px 0 18px}
+  .pill{
+    display:inline-flex;align-items:center;gap:6px;
+    font-size:12.5px;font-weight:700;letter-spacing:.02em;
+    padding:5px 11px;border-radius:999px;border:1px solid var(--line);
+    background:var(--surface);color:var(--ink-2);
+  }
+  .pill.day{background:var(--navy);color:#fff;border-color:var(--navy)}
+  @media (prefers-color-scheme: dark){ .pill.day{background:var(--orange-bright);color:#111827;border-color:var(--orange-bright)} }
+  .pill .dot{width:7px;height:7px;border-radius:50%;background:var(--orange-bright);flex:none}
+  .mono{font-family:"IBM Plex Mono", ui-monospace, monospace}
+
+  /* ---------- hero ---------- */
+  .hero{
+    background:var(--navy);
+    color:#fff;
+    border-radius:24px;
+    padding:30px 28px 26px;
+    position:relative;
+    overflow:hidden;
+    box-shadow:var(--shadow);
+  }
+  .hero::after{
+    content:"";position:absolute;right:-70px;top:-70px;width:260px;height:260px;border-radius:50%;
+    border:44px solid rgba(255,153,0,.22);pointer-events:none;
+  }
+  .hero::before{
+    content:"";position:absolute;right:54px;bottom:-90px;width:160px;height:160px;border-radius:50%;
+    border:28px solid rgba(45,212,191,.14);pointer-events:none;
+  }
+  .hero-kicker{font-size:13px;font-weight:800;letter-spacing:.14em;color:#ffb25e;text-transform:uppercase;margin:0 0 8px;position:relative;z-index:1}
+  .hero h1{font-size:32px;line-height:1.3;font-weight:900;margin:0 0 12px;position:relative;z-index:1;letter-spacing:.01em}
+  .hero h1 .hl{color:var(--orange-bright)}
+  .hero p.lead{margin:0;color:#dbe6f3;font-size:15.5px;max-width:640px;position:relative;z-index:1}
+  .hero-tags{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px;position:relative;z-index:1}
+  .hero-tags span{font-size:12.5px;font-weight:700;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);color:#e2e8f0;padding:4px 10px;border-radius:999px}
+
+  .oneline{
+    margin-top:16px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+    padding:18px 20px;box-shadow:var(--shadow-sm);display:flex;gap:14px;align-items:flex-start;
+  }
+  .oneline .icon{
+    flex:none;width:42px;height:42px;border-radius:12px;background:var(--orange-soft);display:grid;place-items:center;font-size:21px;
+  }
+  .oneline h2{font-size:13px;letter-spacing:.08em;color:var(--orange);margin:0 0 4px;font-weight:800}
+  .oneline p{margin:0;font-size:16.5px;font-weight:700;line-height:1.6;color:var(--ink)}
+  .oneline p b{color:var(--orange)}
+
+  /* ---------- sections ---------- */
+  section{margin-top:36px}
+  .sec-head{display:flex;align-items:baseline;gap:12px;margin-bottom:6px;flex-wrap:wrap}
+  .sec-num{
+    font-family:"IBM Plex Mono",monospace;font-size:13px;font-weight:600;color:#fff;background:var(--orange);
+    width:28px;height:28px;border-radius:8px;display:inline-grid;place-items:center;flex:none;align-self:center;
+  }
+  .sec-head h2{font-size:22px;font-weight:900;margin:0;line-height:1.3}
+  .sec-sub{color:var(--muted);font-size:14px;margin:2px 0 16px 40px}
+  @media (max-width:560px){ .sec-sub{margin-left:0} }
+
+  /* ---------- service tabs ---------- */
+  .flow{display:grid;grid-template-columns:1fr auto 1fr auto 1fr auto 1fr;align-items:stretch;gap:6px;margin:14px 0 18px}
+  .flow-step{
+    background:var(--surface);border:1.5px solid var(--line);border-radius:16px;padding:14px 12px;text-align:center;cursor:pointer;
+    transition:border-color .15s, background .15s, transform .15s;font-family:inherit;color:var(--ink);
+  }
+  .flow-step:hover{transform:translateY(-2px)}
+  .flow-step:focus-visible{outline:3px solid var(--orange-bright);outline-offset:2px}
+  .flow-step.active{border-color:var(--orange);background:var(--surface-2)}
+  .flow-step .step-emoji{font-size:24px;display:block;line-height:1.2}
+  .flow-step .step-no{font-family:"IBM Plex Mono",monospace;font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.08em}
+  .flow-step .step-name{font-weight:800;font-size:14px;display:block;margin-top:2px;line-height:1.4}
+  .flow-step .step-en{font-size:11.5px;color:var(--muted);display:block}
+  .flow-arrow{display:grid;place-items:center;color:var(--line-strong);font-size:18px;font-weight:900;pointer-events:none}
+  @media (max-width:700px){
+    .flow{grid-template-columns:1fr 1fr;gap:8px}
+    .flow-arrow{display:none}
+    .flow-step{display:flex;align-items:center;gap:10px;text-align:left;padding:12px 14px}
+    .flow-step .step-emoji{font-size:22px}
+  }
+  .phase-panel{
+    background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:22px;box-shadow:var(--shadow-sm);
+  }
+  .phase-panel h3{margin:0 0 4px;font-size:19px;font-weight:900}
+  .phase-panel h3 .en{font-size:13px;color:var(--muted);font-weight:700;margin-left:8px;letter-spacing:.04em}
+  .phase-panel .phase-desc{color:var(--ink-2);font-size:14.5px;margin:0 0 16px}
+  .feat-list{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  @media (max-width:700px){ .feat-list{grid-template-columns:1fr} }
+  .feat{background:var(--surface-3);border-radius:14px;padding:14px 15px}
+  .feat .fname{font-weight:800;font-size:14.5px;margin:0 0 4px}
+  .feat .fname .mono{font-size:13px;color:var(--orange);display:block;font-weight:600}
+  .feat p{margin:0;font-size:13.5px;color:var(--ink-2);line-height:1.65}
+  .phase-tip{margin-top:14px;font-size:13.5px;background:var(--teal-soft);color:var(--ink);border-radius:12px;padding:11px 14px}
+  .phase-tip b{color:var(--teal)}
+
+  /* ---------- shard diagram ---------- */
+  .diagram{
+    background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:22px;box-shadow:var(--shadow-sm);
+  }
+  .diagram .d-title{font-weight:900;font-size:15.5px;margin:0 0 4px}
+  .diagram .d-desc{font-size:13.5px;color:var(--ink-2);margin:0 0 18px}
+  .d-grid{display:grid;grid-template-columns:110px 26px 1fr;gap:6px;align-items:center}
+  .d-src{font-size:13px;font-weight:800;text-align:center;background:var(--surface-3);border:1px dashed var(--line-strong);border-radius:10px;padding:10px 6px;line-height:1.5}
+  .d-src .key{font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--orange);font-weight:600;display:block}
+  .d-arrow{display:grid;place-items:center;color:var(--orange);font-weight:900;font-size:16px}
+  .d-shard{border:1.5px solid var(--line);border-radius:12px;padding:9px 12px;display:flex;align-items:center;gap:10px;background:var(--surface);margin:3px 0}
+  .d-shard .s-name{font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:13px;flex:none}
+  .d-shard .s-caps{font-size:12px;color:var(--muted)}
+  .d-shard .recs{margin-left:auto;display:flex;gap:5px;flex:none}
+  .d-shard .rec{width:16px;height:16px;border-radius:4px;background:var(--orange-soft);border:1px solid var(--orange-bright)}
+  .d-shard.hot{border-color:var(--red);background:var(--red-soft)}
+  .d-shard.hot .s-name{color:var(--red)}
+  .d-shard.hot .rec{background:var(--red-soft);border-color:var(--red)}
+  .d-tag{font-size:11px;font-weight:800;color:#fff;background:var(--red);border-radius:999px;padding:2px 8px;flex:none}
+  @media (max-width:560px){
+    .d-grid{grid-template-columns:88px 18px 1fr}
+    .d-shard .s-caps{display:none}
+    .d-shard .rec{width:12px;height:12px}
+  }
+  .d-legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:16px;font-size:12.5px;color:var(--ink-2)}
+  .d-legend span{display:inline-flex;align-items:center;gap:6px}
+  .d-legend .sw{width:14px;height:14px;border-radius:4px;flex:none}
+  .diagram .warn{
+    margin-top:14px;background:var(--red-soft);border-radius:12px;padding:12px 15px;font-size:13.5px;line-height:1.65;
+  }
+  .diagram .warn b{color:var(--red)}
+
+  /* ---------- compare table ---------- */
+  .ctable-wrap{display:flex;flex-direction:column;gap:14px}
+  .ctable{
+    background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow-sm);
+  }
+  .ctable .c-head{display:flex;align-items:center;gap:12px;padding:16px 20px 4px}
+  .ctable .c-emoji{font-size:26px;flex:none}
+  .ctable h3{margin:0;font-size:17px;font-weight:900;line-height:1.35}
+  .ctable h3 .old{font-size:12px;color:var(--muted);font-weight:700;display:block}
+  .ctable .c-role{padding:2px 20px 12px;font-size:14.5px;color:var(--ink-2);margin:0}
+  .ctable dl{margin:0;border-top:1px dashed var(--line-strong)}
+  .ctable .row{display:grid;grid-template-columns:110px 1fr;gap:10px;padding:10px 20px;border-bottom:1px solid var(--line)}
+  .ctable .row:last-child{border-bottom:none}
+  .ctable dt{font-size:12.5px;font-weight:800;color:var(--orange);letter-spacing:.03em;padding-top:2px}
+  .ctable dd{margin:0;font-size:14px;color:var(--ink-2)}
+  .ctable code{
+    font-family:"IBM Plex Mono",monospace;font-size:.88em;background:var(--surface-3);border:1px solid var(--line);
+    padding:1px 6px;border-radius:6px;color:var(--orange);font-weight:600;white-space:nowrap;
+  }
+
+  /* ---------- exam ---------- */
+  .exam-list{display:flex;flex-direction:column;gap:12px}
+  .exam-item{
+    display:flex;gap:14px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;box-shadow:var(--shadow-sm);
+  }
+  .exam-item .badge{
+    flex:none;width:34px;height:34px;border-radius:50%;background:var(--navy);color:#fff;font-weight:800;font-size:15px;display:grid;place-items:center;margin-top:2px;
+  }
+  @media (prefers-color-scheme: dark){ .exam-item .badge{background:var(--orange-bright);color:#111827} }
+  .exam-item h3{margin:0 0 4px;font-size:16px;font-weight:800}
+  .exam-item p{margin:0;font-size:14.5px;color:var(--ink-2)}
+  .exam-item code{
+    font-family:"IBM Plex Mono",monospace;font-size:.88em;background:var(--surface-3);border:1px solid var(--line);
+    padding:1px 6px;border-radius:6px;color:var(--orange);font-weight:600;white-space:nowrap;
+  }
+
+  /* ---------- quiz ---------- */
+  .quiz{
+    background:var(--navy);color:#fff;border-radius:24px;padding:26px 24px;box-shadow:var(--shadow);position:relative;overflow:hidden;
+  }
+  .quiz::after{content:"?";position:absolute;right:14px;top:-28px;font-size:150px;font-weight:900;color:rgba(255,255,255,.06);line-height:1;pointer-events:none}
+  .quiz .q-label{font-size:12.5px;font-weight:800;letter-spacing:.12em;color:#ffb25e;margin:0 0 8px}
+  .quiz h2{font-size:20px;font-weight:900;margin:0 0 6px;line-height:1.45}
+  .quiz .q-sub{color:#cbd5e1;font-size:13.5px;margin:0 0 18px}
+  .quiz-block{margin-bottom:22px;position:relative;z-index:1}
+  .quiz-block:last-child{margin-bottom:0}
+  .quiz-q{font-weight:700;font-size:15.5px;margin:0 0 12px;line-height:1.65}
+  .quiz-q .qno{color:var(--orange-bright);font-family:"IBM Plex Mono",monospace;margin-right:6px}
+  .choices{display:flex;flex-direction:column;gap:9px}
+  .choice{
+    text-align:left;font-family:inherit;font-size:14.5px;font-weight:600;color:#e2e8f0;
+    background:rgba(255,255,255,.07);border:1.5px solid rgba(255,255,255,.22);border-radius:12px;
+    padding:12px 15px;cursor:pointer;display:flex;gap:10px;align-items:flex-start;line-height:1.55;
+  }
+  .choice:hover{border-color:var(--orange-bright)}
+  .choice:focus-visible{outline:3px solid var(--orange-bright);outline-offset:2px}
+  .choice .letter{flex:none;width:24px;height:24px;border-radius:7px;background:rgba(255,255,255,.14);display:grid;place-items:center;font-size:13px;font-weight:800;margin-top:1px}
+  .choice.correct{border-color:#4ade80;background:rgba(74,222,128,.16);color:#fff}
+  .choice.correct .letter{background:#22c55e;color:#fff}
+  .choice.wrong{border-color:#f87171;background:rgba(248,113,113,.14)}
+  .choice.wrong .letter{background:#dc2626;color:#fff}
+  .choice:disabled{cursor:default;opacity:.92}
+  .feedback{display:none;margin-top:12px;border-radius:12px;padding:12px 15px;font-size:14px;line-height:1.65}
+  .feedback.show{display:block}
+  .feedback.ok{background:rgba(74,222,128,.15);border:1px solid rgba(74,222,128,.4)}
+  .feedback.ng{background:rgba(248,113,113,.13);border:1px solid rgba(248,113,113,.4)}
+  .feedback b{color:#fff}
+  .quiz-score{margin-top:18px;font-size:14px;font-weight:700;color:#e2e8f0;display:none;position:relative;z-index:1}
+  .quiz-score.show{display:block}
+  .quiz-score .big{color:var(--orange-bright);font-size:18px}
+
+  /* ---------- next / footer ---------- */
+  .next-card{
+    margin-top:36px;display:flex;gap:16px;align-items:center;background:var(--surface);border:1.5px dashed var(--line-strong);
+    border-radius:var(--radius);padding:20px 22px;
+  }
+  .next-card .n-emoji{font-size:32px;flex:none}
+  .next-card h2{margin:0 0 2px;font-size:16.5px;font-weight:900}
+  .next-card p{margin:0;font-size:14px;color:var(--muted)}
+  .next-card .day2{margin-left:auto;flex:none;font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:13px;color:var(--orange);border:1px solid var(--orange);border-radius:999px;padding:5px 12px;white-space:nowrap}
+  @media (max-width:560px){ .next-card{flex-wrap:wrap} .next-card .day2{margin-left:0} }
+  footer{margin-top:28px;text-align:center;color:var(--muted);font-size:12.5px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="meta-row" aria-label="メタ情報">
+    <span class="pill day">DAY 3 / 84</span>
+    <span class="pill"><span class="dot"></span>AWS MLA-C01 対策</span>
+    <span class="pill">⏱ 読了目安 約4分</span>
+    <span class="pill mono">2026.10.29 THU</span>
+  </div>
+
+  <header class="hero">
+    <p class="hero-kicker">Data Engineering — Lesson 03</p>
+    <h1>Amazon <span class="hl">Kinesis</span> と<br>ストリーミングデータ</h1>
+    <p class="lead">センサーやアプリから絶え間なく流れてくるデータを、どう受け止めて、どう処理するか。今日は Kinesis ファミリー4サービスの「役割分担」を押さえましょう。</p>
+    <div class="hero-tags">
+      <span># ストリーミング</span><span># リアルタイム処理</span><span># シャード</span>
+    </div>
+  </header>
+
+  <div class="oneline">
+    <div class="icon" aria-hidden="true">🌊</div>
+    <div>
+      <h2>一言で言うと</h2>
+      <p>Kinesis は<b>「流れてくるデータ（ストリーム）」を扱うサービスの集まり</b>。自分で処理するなら Data Streams、ためて届けるだけなら Firehose、という使い分けがすべての基本です。</p>
+    </div>
+  </div>
+
+  <!-- 01 services -->
+  <section aria-labelledby="sec1">
+    <div class="sec-head"><span class="sec-num">01</span><h2 id="sec1">Kinesis ファミリー ― 4つのサービス</h2></div>
+    <p class="sec-sub">サービス名をタップすると、役割と特徴が切り替わります。まず「何をするサービスか」を一言で言えるようにしましょう。</p>
+
+    <div class="flow" role="tablist" aria-label="Kinesisファミリーのサービス">
+      <button class="flow-step active" role="tab" aria-selected="true" data-svc="0" id="tab-0">
+        <span class="step-emoji" aria-hidden="true">🚰</span>
+        <span class="step-meta"><span class="step-no">RECEIVE</span><span class="step-name">Data Streams</span><span class="step-en">受けて、自分で処理</span></span>
+      </button>
+      <span class="flow-arrow" aria-hidden="true">›</span>
+      <button class="flow-step" role="tab" aria-selected="false" data-svc="1" id="tab-1">
+        <span class="step-emoji" aria-hidden="true">🚚</span>
+        <span class="step-meta"><span class="step-no">DELIVER</span><span class="step-name">Data Firehose</span><span class="step-en">ためて、届ける</span></span>
+      </button>
+      <span class="flow-arrow" aria-hidden="true">›</span>
+      <button class="flow-step" role="tab" aria-selected="false" data-svc="2" id="tab-2">
+        <span class="step-emoji" aria-hidden="true">📹</span>
+        <span class="step-meta"><span class="step-no">VIDEO</span><span class="step-name">Video Streams</span><span class="step-en">映像・音声専用</span></span>
+      </button>
+      <span class="flow-arrow" aria-hidden="true">›</span>
+      <button class="flow-step" role="tab" aria-selected="false" data-svc="3" id="tab-3">
+        <span class="step-emoji" aria-hidden="true">🔍</span>
+        <span class="step-meta"><span class="step-no">ANALYZE</span><span class="step-name">Managed Flink</span><span class="step-en">流しながら分析</span></span>
+      </button>
+    </div>
+
+    <div class="phase-panel" role="tabpanel" aria-live="polite" id="svcPanel">
+      <!-- JSで差し替え -->
+    </div>
+  </section>
+
+  <!-- 02 shard diagram -->
+  <section aria-labelledby="sec2">
+    <div class="sec-head"><span class="sec-num">02</span><h2 id="sec2">図解：シャードとパーティションキー</h2></div>
+    <p class="sec-sub">Data Streams の心臓部です。「どのシャードに入るか」はパーティションキーで決まります。</p>
+
+    <div class="diagram">
+      <p class="d-title">レコードはパーティションキーのハッシュ値でシャードに振り分けられる</p>
+      <p class="d-desc">同じパーティションキーを持つレコードは必ず同じシャードに入り、その中では到着した順序が保証されます。シャード1つあたりの処理能力には上限があるため、キーの偏りがそのままボトルネックになります。</p>
+
+      <div class="d-grid" role="img" aria-label="パーティションキー user-A のレコードがシャード1に集中してホットシャードになっている図">
+        <div class="d-src">送信元アプリ<span class="key">key: user-A</span></div>
+        <div class="d-arrow" aria-hidden="true">→</div>
+        <div>
+          <div class="d-shard hot"><span class="s-name">Shard 1</span><span class="s-caps">書込 1MB/秒 or 1,000件/秒</span><span class="d-tag">過負荷！</span><span class="recs"><span class="rec"></span><span class="rec"></span><span class="rec"></span><span class="rec"></span><span class="rec"></span><span class="rec"></span></span></div>
+        </div>
+        <div class="d-src">送信元アプリ<span class="key">key: user-B</span></div>
+        <div class="d-arrow" aria-hidden="true">→</div>
+        <div>
+          <div class="d-shard"><span class="s-name">Shard 2</span><span class="s-caps">書込 1MB/秒 or 1,000件/秒</span><span class="recs"><span class="rec"></span><span class="rec"></span></span></div>
+        </div>
+        <div class="d-src">送信元アプリ<span class="key">key: user-C</span></div>
+        <div class="d-arrow" aria-hidden="true">→</div>
+        <div>
+          <div class="d-shard"><span class="s-name">Shard 3</span><span class="s-caps">書込 1MB/秒 or 1,000件/秒</span><span class="recs"><span class="rec"></span><span class="rec"></span><span class="rec"></span></span></div>
+        </div>
+      </div>
+
+      <div class="d-legend">
+        <span><span class="sw" style="background:var(--orange-soft);border:1px solid var(--orange-bright)"></span>レコード（データ1件）</span>
+        <span><span class="sw" style="background:var(--red-soft);border:1.5px solid var(--red)"></span>ホットシャード（集中しすぎ）</span>
+      </div>
+
+      <p class="warn">⚠️ <b>ホットシャードに注意：</b> 特定ユーザーやデバイスだけが大量にデータを送ると、そのキーを受け持つシャードだけが上限に達してエラー（<span class="mono">ProvisionedThroughputExceeded</span>）になります。対策は、パーティションキーを分散させること（例：キーにランダムな接尾辞を付ける）と、シャード数を増やすことです。</p>
+    </div>
+  </section>
+
+  <!-- 03 compare -->
+  <section aria-labelledby="sec3">
+    <div class="sec-head"><span class="sec-num">03</span><h2 id="sec3">4サービスの比較表</h2></div>
+    <p class="sec-sub">シナリオ問題では、この表の「役割」と「覚える数字」がそのまま答えになります。</p>
+
+    <div class="ctable-wrap">
+      <div class="ctable">
+        <div class="c-head"><span class="c-emoji" aria-hidden="true">🚰</span><h3>Kinesis Data Streams<span class="old">ストリームの「受け口」</span></h3></div>
+        <p class="c-role">データをリアルタイムに受け取り、<b>自分のプログラムで自由に処理する</b>ための基盤。</p>
+        <dl>
+          <div class="row"><dt>処理の主体</dt><dd>自分（Lambda、EC2、Flink など読み取り側を自分で用意）</dd></div>
+          <div class="row"><dt>管理すること</dt><dd><code>シャード</code>数（スループットはシャード数で決まる）</dd></div>
+          <div class="row"><dt>保存期間</dt><dd>既定 <code>24時間</code>、最大 <code>365日</code> まで延長可（読み直し・再処理ができる）</dd></div>
+          <div class="row"><dt>順序保証</dt><dd>同一 <code>パーティションキー</code> 内でのみ保証</dd></div>
+        </dl>
+      </div>
+
+      <div class="ctable">
+        <div class="c-head"><span class="c-emoji" aria-hidden="true">🚚</span><h3>Amazon Data Firehose<span class="old">旧名：Kinesis Data Firehose</span></h3></div>
+        <p class="c-role">ストリームデータを<b>ためて、宛先へ届ける</b>ことに特化したフルマネージド配信サービス。</p>
+        <dl>
+          <div class="row"><dt>処理の主体</dt><dd>AWS（配信はおまかせ。変換したいときだけ <code>Lambda</code> を挟める）</dd></div>
+          <div class="row"><dt>管理すること</dt><dd>ほぼなし。<code>シャード管理不要</code> で自動スケール</dd></div>
+          <div class="row"><dt>届け先</dt><dd><code>S3</code>、Redshift、OpenSearch Service など。バッファリングしてまとめて配信</dd></div>
+          <div class="row"><dt>保存期間</dt><dd>保存はしない（バッファは一時的なもの。通過点にすぎない）</dd></div>
+        </dl>
+      </div>
+
+      <div class="ctable">
+        <div class="c-head"><span class="c-emoji" aria-hidden="true">📹</span><h3>Kinesis Video Streams<span class="old">映像・音声専用</span></h3></div>
+        <p class="c-role">カメラやマイクからの<b>映像・音声ストリーム</b>を取り込むための専用サービス。</p>
+        <dl>
+          <div class="row"><dt>処理の主体</dt><dd>取り込みは AWS、映像の解析は Rekognition Video などと連携</dd></div>
+          <div class="row"><dt>管理すること</dt><dd>デバイス側の SDK で接続するだけ（シャードの概念なし）</dd></div>
+          <div class="row"><dt>保存期間</dt><dd>設定した保持期間のあいだ映像を保存し、後から再生・解析できる</dd></div>
+          <div class="row"><dt>向いている場面</dt><dd>監視カメラの映像解析、ビデオ通話、ドライブレコーダーの取り込み</dd></div>
+        </dl>
+      </div>
+
+      <div class="ctable">
+        <div class="c-head"><span class="c-emoji" aria-hidden="true">🔍</span><h3>Amazon Managed Service for Apache Flink<span class="old">旧名：Kinesis Data Analytics</span></h3></div>
+        <p class="c-role">流れてくるデータに対して、<b>SQL や Flink アプリでリアルタイム分析</b>を行うサービス。</p>
+        <dl>
+          <div class="row"><dt>処理の主体</dt><dd>分析クエリは自分で書く。実行基盤は AWS が管理</dd></div>
+          <div class="row"><dt>入力元</dt><dd><code>Data Streams</code> や <code>Firehose</code> のストリームをそのまま読める</dd></div>
+          <div class="row"><dt>得意なこと</dt><dd>「直近5分間の集計」のような時間ウィンドウ集計、異常検知、フィルタリング</dd></div>
+          <div class="row"><dt>向いている場面</dt><dd>ダッシュボードのリアルタイム更新、ストリームの ETL、即時アラート</dd></div>
+        </dl>
+      </div>
+    </div>
+  </section>
+
+  <!-- 04 exam -->
+  <section aria-labelledby="sec4">
+    <div class="sec-head"><span class="sec-num">04</span><h2 id="sec4">試験で問われるポイント</h2></div>
+    <p class="sec-sub">MLA-C01 では「どのサービスを選ぶか」の判断軸が問われます。この4つを押さえれば大丈夫です。</p>
+    <div class="exam-list">
+      <div class="exam-item">
+        <div class="badge">1</div>
+        <div>
+          <h3>「自分で処理」か「届けるだけ」か</h3>
+          <p>受け取ったデータを自前のコードでリアルタイム処理したい → <code>Data Streams</code>。S3 などへ保存・配信するだけでよい → <code>Data Firehose</code>。この二分法が最重要の判断軸です。</p>
+        </div>
+      </div>
+      <div class="exam-item">
+        <div class="badge">2</div>
+        <div>
+          <h3>スループット調整 ＝ シャード数の増減</h3>
+          <p>Data Streams の処理能力はシャード数で決まります。「データ量が増えたので処理能力を上げたい」→ シャードを増やす（リシャーディング）。Firehose にはこの概念がなく、自動でスケールします。</p>
+        </div>
+      </div>
+      <div class="exam-item">
+        <div class="badge">3</div>
+        <div>
+          <h3>順序保証は「同一パーティションキー内」だけ</h3>
+          <p>ストリーム全体の順序が保証されるわけではありません。同じキー同士なら順序どおりに読めますが、キー同士の前後関係は保証されません。「順序が大事」な問題ではこの限定が鍵になります。</p>
+        </div>
+      </div>
+      <div class="exam-item">
+        <div class="badge">4</div>
+        <div>
+          <h3>再処理ができるのは Data Streams</h3>
+          <p>Data Streams はデータを保存するので（既定24時間・最大365日）、障害後に同じデータを読み直して再処理できます。Firehose は通過点であり、届けたデータの読み直しはできません。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- quiz -->
+  <section aria-labelledby="quizTitle">
+    <div class="quiz">
+      <p class="q-label">CHECK QUIZ — 確認クイズ</p>
+      <h2 id="quizTitle">今日の理解度チェック（全3問）</h2>
+      <p class="q-sub">選択肢をタップすると、その場で答え合わせができます。</p>
+
+      <div class="quiz-block" data-quiz="0">
+        <p class="quiz-q"><span class="qno">Q1.</span>アプリのログをリアルタイムに受け取り、自前の Lambda で加工しながら分析基盤に渡したい。シャードの管理も含め、最も適したサービスは？</p>
+        <div class="choices">
+          <button class="choice" data-correct="true"><span class="letter">A</span><span>Kinesis Data Streams</span></button>
+          <button class="choice" data-correct="false"><span class="letter">B</span><span>Amazon Data Firehose</span></button>
+          <button class="choice" data-correct="false"><span class="letter">C</span><span>Kinesis Video Streams</span></button>
+        </div>
+        <div class="feedback" role="status"></div>
+      </div>
+
+      <div class="quiz-block" data-quiz="1">
+        <p class="quiz-q"><span class="qno">Q2.</span>クリックストリームを、コードを書かずにそのまま S3 へ継続的に保存したい。シャード管理もしたくない場合に選ぶべきサービスは？</p>
+        <div class="choices">
+          <button class="choice" data-correct="false"><span class="letter">A</span><span>Kinesis Data Streams</span></button>
+          <button class="choice" data-correct="true"><span class="letter">B</span><span>Amazon Data Firehose</span></button>
+          <button class="choice" data-correct="false"><span class="letter">C</span><span>Amazon Managed Service for Apache Flink</span></button>
+        </div>
+        <div class="feedback" role="status"></div>
+      </div>
+
+      <div class="quiz-block" data-quiz="2">
+        <p class="quiz-q"><span class="qno">Q3.</span>Data Streams で、特定のデバイスだけが大量のデータを送信したため一部の書き込みがエラーになった。原因として最も考えられるのは？</p>
+        <div class="choices">
+          <button class="choice" data-correct="false"><span class="letter">A</span><span>保存期間（24時間）を過ぎてデータが消えた</span></button>
+          <button class="choice" data-correct="false"><span class="letter">B</span><span>Firehose のバッファが満杯になった</span></button>
+          <button class="choice" data-correct="true"><span class="letter">C</span><span>パーティションキーが偏り、特定シャードが上限に達した（ホットシャード）</span></button>
+        </div>
+        <div class="feedback" role="status"></div>
+      </div>
+
+      <p class="quiz-score" id="quizScore"></p>
+    </div>
+  </section>
+
+  <div class="next-card">
+    <div class="n-emoji" aria-hidden="true">🧹</div>
+    <div>
+      <h2>明日は Day 4：データの前処理と変換</h2>
+      <p>集めたデータはそのままでは使えません。Glue や EMR で「学習できる形」に整える工程がテーマです。</p>
+    </div>
+    <span class="day2">DAY 4 →</span>
+  </div>
+
+  <footer>
+    <p>MLA毎日解説 ― Day 3 ｜ Amazon Kinesis とストリーミングデータ</p>
+  </footer>
+
+</div>
+
+<script>
+(function(){
+  var services = [
+    {
+      title: "Kinesis Data Streams",
+      en: "RECEIVE & PROCESS",
+      desc: "ストリーミングデータの「受け口」です。送られてきたデータをシャードという単位で保持し、読み取り側のプログラム（Lambda や独自アプリ）が自分のペースで処理します。自由度が高い代わりに、処理の仕組みは自分で用意するのが前提です。",
+      feats: [
+        { name: "シャード", en: "Shard", text: "スループットの単位。1シャードあたり書き込みは 1MB/秒 または 1,000レコード/秒、読み取りは 2MB/秒まで。足りなければシャードを増やします。" },
+        { name: "パーティションキー", en: "Partition Key", text: "レコードがどのシャードに入るかを決める値。同じキーのレコードは同じシャードに入り、その範囲で順序が保証されます。" },
+        { name: "保存期間", en: "Retention Period", text: "既定は24時間、最大で365日まで延長可能。保存されている間は、何度でも読み直して再処理できます。" }
+      ],
+      tip: "試験ヒント：「リアルタイムに自分で処理したい」「データを再処理したい」「順序を保ちたい」と来たら Data Streams です。"
+    },
+    {
+      title: "Amazon Data Firehose",
+      en: "DELIVER",
+      desc: "旧名は Kinesis Data Firehose。ストリームデータを S3 などの宛先へ届けることに特化したフルマネージドサービスです。データをバッファ（一定量・一定時間ためる）してからまとめて配信するため、ほぼリアルタイムに近い形で保存できます。",
+      feats: [
+        { name: "シャード管理不要", en: "Fully Managed", text: "シャードという概念がなく、データ量に応じて AWS が自動でスケールします。運用の手間がほぼゼロです。" },
+        { name: "バッファリング配信", en: "Buffering", text: "バッファサイズやバッファ間隔の条件を満たしたら宛先へ配信。S3、Redshift、OpenSearch Service などに対応します。" },
+        { name: "Lambdaで変換", en: "Data Transformation", text: "配信の途中で Lambda を挟み、形式変換やフィルタリングができます。ただし本格的な処理は守備範囲外です。" }
+      ],
+      tip: "試験ヒント：「S3 にそのまま保存したい」「コードを書きたくない」「シャード管理をしたくない」→ Firehose 一択です。"
+    },
+    {
+      title: "Kinesis Video Streams",
+      en: "VIDEO & AUDIO",
+      desc: "カメラ・マイクなどのデバイスから、映像と音声のストリームを安全に取り込むための専用サービスです。取り込んだ映像は保持期間のあいだ保存され、後から再生したり、Rekognition Video と組み合わせて解析したりできます。",
+      feats: [
+        { name: "映像の取り込み", en: "Ingestion", text: "デバイス SDK を使って、監視カメラやスマホなどから映像・音声をリアルタイムに送信できます。" },
+        { name: "保存と再生", en: "Storage & Playback", text: "設定した保持期間だけ映像を保存。ライブ再生にも過去映像の再生にも対応します。" },
+        { name: "ML連携", en: "Works with Rekognition", text: "Amazon Rekognition Video と連携すれば、顔検出や物体検出などの映像解析をストリームに対して行えます。" }
+      ],
+      tip: "試験ヒント：問題文に「カメラ」「映像」「監視」が登場したら Video Streams。通常の数値・ログデータとは切り分けましょう。"
+    },
+    {
+      title: "Amazon Managed Service for Apache Flink",
+      en: "ANALYZE",
+      desc: "旧名は Kinesis Data Analytics。Data Streams や Firehose から流れてくるデータに対して、SQL や Apache Flink のアプリケーションを実行し、リアルタイムに集計・分析するサービスです。「ためてから分析」ではなく「流れながら分析」するのが特徴です。",
+      feats: [
+        { name: "SQLで分析", en: "SQL / Flink Apps", text: "ストリームに対して SQL クエリを流し続けられます。Java や Python の Flink アプリケーションも実行可能です。" },
+        { name: "ウィンドウ集計", en: "Windowing", text: "「直近5分間の平均」「1分ごとの件数」など、時間の区切り（ウィンドウ）で集計する処理が得意です。" },
+        { name: "結果の出力", en: "Output", text: "分析結果は別のストリームや Firehose 経由で S3・ダッシュボードなどへ流せます。異常検知して即アラート、といった使い方が定番です。" }
+      ],
+      tip: "試験ヒント：「ストリームを SQL でリアルタイム集計したい」「流れながら異常を検知したい」→ Managed Service for Apache Flink です。"
+    }
+  ];
+
+  var panel = document.getElementById('svcPanel');
+  var tabs = Array.prototype.slice.call(document.querySelectorAll('.flow-step'));
+
+  function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
+
+  function renderSvc(i){
+    var p = services[i];
+    var featsHtml = p.feats.map(function(f){
+      return '<div class="feat"><p class="fname"><span class="mono">' + esc(f.en) + '</span>' + esc(f.name) + '</p><p>' + esc(f.text) + '</p></div>';
+    }).join('');
+    panel.innerHTML =
+      '<h3>' + esc(p.title) + '<span class="en">' + esc(p.en) + '</span></h3>' +
+      '<p class="phase-desc">' + esc(p.desc) + '</p>' +
+      '<div class="feat-list">' + featsHtml + '</div>' +
+      '<p class="phase-tip"><b>🎯 </b>' + esc(p.tip) + '</p>';
+    tabs.forEach(function(t, idx){
+      var on = idx === i;
+      t.classList.toggle('active', on);
+      t.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+  }
+
+  tabs.forEach(function(t){
+    t.addEventListener('click', function(){ renderSvc(parseInt(t.getAttribute('data-svc'), 10)); });
+  });
+  renderSvc(0);
+
+  /* quiz */
+  var totalQ = document.querySelectorAll('.quiz-block').length;
+  var answered = {};
+  var correctCount = 0;
+
+  var explanations = [
+    { ok: "正解！ <b>Kinesis Data Streams</b> です。「受け取って自分で処理する」なら Data Streams。Firehose は届ける専用で、自前の処理ロジックを差し込む場所ではありません。",
+      ng: "残念、正解は <b>A：Kinesis Data Streams</b> です。自分で処理ロジックを用意するなら Data Streams。Firehose は「ためて届ける」専用、Video Streams は映像専用でしたね。" },
+    { ok: "正解！ <b>Amazon Data Firehose</b> です。シャード管理不要のフルマネージドで、バッファリングしながら S3 へ配信してくれます。「保存するだけ」が目的ならこれが最短ルートです。",
+      ng: "残念、正解は <b>B：Amazon Data Firehose</b> です。S3 へ届けるだけなら Firehose。Data Streams はシャード管理が必要で、Flink は「分析」が役割でしたね。" },
+    { ok: "正解！ <b>ホットシャード</b> が原因です。そのデバイスのパーティションキーが割り当たるシャードだけが上限（1MB/秒 or 1,000件/秒）に達しています。キーの分散やシャード追加で対処します。",
+      ng: "残念、正解は <b>C：ホットシャード</b> です。パーティションキーが偏ると特定のシャードに負荷が集中し、上限を超えてエラーになります。キーを分散させるのが基本の対策です。" }
+  ];
+
+  document.querySelectorAll('.quiz-block').forEach(function(block){
+    var qi = parseInt(block.getAttribute('data-quiz'), 10);
+    var feedback = block.querySelector('.feedback');
+    block.querySelectorAll('.choice').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        if (answered[qi]) return;
+        answered[qi] = true;
+        var isCorrect = btn.getAttribute('data-correct') === 'true';
+        if (isCorrect) correctCount++;
+        block.querySelectorAll('.choice').forEach(function(b){
+          b.disabled = true;
+          if (b.getAttribute('data-correct') === 'true') b.classList.add('correct');
+        });
+        if (!isCorrect) btn.classList.add('wrong');
+        feedback.innerHTML = (isCorrect ? '⭕ ' : '❌ ') + (isCorrect ? explanations[qi].ok : explanations[qi].ng);
+        feedback.classList.add('show', isCorrect ? 'ok' : 'ng');
+        updateScore();
+      });
+    });
+  });
+
+  function updateScore(){
+    var done = Object.keys(answered).length;
+    var scoreEl = document.getElementById('quizScore');
+    if (done === totalQ) {
+      scoreEl.innerHTML = correctCount === totalQ
+        ? '🎉 結果：<span class="big">' + correctCount + ' / ' + totalQ + ' 問正解</span> ― 完璧！「処理するなら Streams、届けるなら Firehose」の使い分けはバッチリだね。'
+        : '結果：<span class="big">' + correctCount + ' / ' + totalQ + ' 問正解</span> ― 間違えたところは上の比較表とシャードの図解を見直してみてね。';
+      scoreEl.classList.add('show');
+    }
+  }
+})();
+</script>
+</body>
+</html>
