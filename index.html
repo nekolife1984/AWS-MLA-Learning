@@ -114,10 +114,17 @@
 
   /* ---------- day cards ---------- */
   .day-list{display:grid;gap:14px;margin-top:16px}
-  a.day-card{
+  .day-card{
     display:flex;gap:16px;align-items:flex-start;text-decoration:none;color:inherit;
     background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
     padding:18px 20px;box-shadow:var(--shadow-sm);
+  }
+  .day-card.is-disabled{opacity:.6;box-shadow:none}
+  .day-card.is-disabled .day-badge{background:var(--surface-3);color:var(--muted)}
+  .day-card.is-disabled h3{color:var(--ink-2)}
+  .day-card .soon{
+    margin-left:auto;flex:none;font-size:12px;font-weight:800;letter-spacing:.04em;
+    color:var(--muted);border:1px solid var(--line-strong);border-radius:999px;padding:3px 10px;line-height:1.6;
   }
   a.day-card:active{transform:scale(.995)}
   .day-badge{
@@ -159,9 +166,9 @@
 
   <section>
     <div class="sec-head">
-      <span class="sec-num">LIST</span>
-      <h2>解説一覧</h2>
-      <p>新しいDayはここに追加されていきます。</p>
+      <span class="sec-num">ROUND 1</span>
+      <h2>1巡目（Day 1〜42）</h2>
+      <p>全84日分を先に並べてあります。まだ公開されていないDayは「準備中」で、リンクは無効になっています。</p>
     </div>
     <div class="day-list">
       <a class="day-card" href="./day-01/">
@@ -196,9 +203,659 @@
         </div>
         <span class="arrow">→</span>
       </a>
+      <div class="day-card is-disabled" aria-disabled="true">
+        <span class="day-badge">DAY 05</span>
+        <div>
+          <h3>Amazon Athena と AWS Lake Formation</h3>
+          <p>準備中です。公開され次第、ここから開けるようになります。</p>
+        </div>
+        <span class="soon">準備中</span>
+      </div>
+      <div class="day-card is-disabled" aria-disabled="true">
+        <span class="day-badge">DAY 06</span>
+        <div>
+          <h3>特徴量エンジニアリングの基礎（スケーリング、エンコーディング、欠損・外れ値）</h3>
+          <p>準備中です。公開され次第、ここから開けるようになります。</p>
+        </div>
+        <span class="soon">準備中</span>
+      </div>
+      <div class="day-card is-disabled" aria-disabled="true">
+        <span class="day-badge">DAY 07</span>
+        <div>
+          <h3>SageMaker Data Wrangler と SageMaker Feature Store</h3>
+          <p>準備中です。公開され次第、ここから開けるようになります。</p>
+        </div>
+        <span class="soon">準備中</span>
+      </div>
+      <div class="day-card is-disabled" aria-disabled="true">
+        <span class="day-badge">DAY 08</span>
+        <div>
+          <h3>SageMaker Ground Truth とデータのラベリング</h3>
+          <p>準備中です。公開され次第、ここから開けるようになります。</p>
+        </div>
+        <span class="soon">準備中</span>
+      </div>
+      <div class="day-card is-disabled" aria-disabled="true">
+        <span class="day-badge">DAY 09</span>
+        <div>
+          <h3>データの偏り（バイアス）と SageMaker Clarify（学習前バイアス）</h3>
+          <p>準備中です。公開され次第、ここから開けるようになります。</p>
+        </div>
+        <span class="soon">準備中</span>
+      </div>
+      <div class="day-card is-disabled" aria-disabled="true">
+        <span class="day-badge">DAY 10</span>
+        <div>
+          <h3>データ品質の検証と暗号化・匿名化（PII対応）</h3>
+          <p>準備中です。公開され次第、ここから開けるようになります。</p>
+        </div>
+        <span class="soon">準備中</span>
+      </div>
+      <div class="day-card is-disabled" aria-disabled="true">
+        <span class="day-badge">DAY 11</span>
+        <div>
+          <h3>教師あり学習と教師なし学習、分類・回帰・クラスタリングの選び方</h3>
+          <p>準備中です。公開され次第、ここから開けるようになります。</p>
+        </div>
+        <span class="soon">準備中</span>
+      </div>
+      <div class="day-card is-disabled" aria-disabled="true">
+        <span class="day-badge">DAY 12</span>
+        <div>
+          <h3>SageMaker の組み込みアルゴリズムの選び方</h3>
+          <p>準備中です。公開され次第、ここから開けるようになります。</p>
+        </div>
+        <span class="soon">準備中</span>
+      </div>
+      <div class="day-card is-disabled" aria-disabled="true">
+        <span class="day-badge">DAY 13</span>
+        <div>
+          <h3>SageMaker Training Jobs と分散学習</h3>
+          <p>準備中です。公開され次第、ここから開けるようになります。</p>
+        </div>
+        <span class="soon">準備中</span>
+      </div>
+      <div class="day-card is-disabled" aria-disabled="true">
+        <span class="day-badge">DAY 14</span>
+        <div>
+          <h3>SageMaker Autopilot と JumpStart</h3>
+          <p>準備中です。公開され次第、ここから開けるようになります。</p>
+        </div>
+        <span class="soon">準備中</span>
+      </div>
+      <div class="day-card is-disabled" aria-disabled="true">
+        <span class="day-badge">DAY 15</span>
+        <div>
+          <h3>ハイパーパラメータチューニング（Automatic Model Tuning）</h3>
+          <p>準備中です。公開され次第、ここから開けるようになります。</p>
+        </div>
+        <span class="soon">準備中</span>
+      </div>
+      <div class="day-card is-disabled" aria-disabled="true">
+        <span class="day-badge">DAY 16</span>
+        <div>
+          <h3>評価指標（Accuracy / Precision / Recall / F1 / AUC）と混同行列</h3>
+          <p>準備中です。公開され次第、ここから開けるようになります。</p>
+        </div>
+        <span class="soon">準備中</span>
+      </div>
+      <div class="day-card is-disabled" aria-disabled="true">
+        <span class="day-badge">DAY 17</span>
+        <div>
+          <h3>過学習と正則化、交差検証</h3>
+          <p>準備中です。公開され次第、ここから開けるようになります。</p>
+        </div>
+        <span class="soon">準備中</span>
+      </div>
+      <div class="day-card is-disabled" aria-disabled="true">
+        <span class="day-badge">DAY 18</span>
+        <div>
+          <h3>推論エンドポイントの種類（リアルタイム / サーバーレス / 非同期 / バッチ変換）</h3>
+          <p>準備中です。公開され次第、ここから開けるようになります。</p>
+        </div>
+        <span class="soon">準備中</span>
+      </div>
+      <div class="day-card is-disabled" aria-disabled="true">
+        <span class="day-badge">DAY 19</span>
+        <div>
+          <h3>マルチモデルエンドポイントとオートスケーリング</h3>
+          <p>準備中です。公開され次第、ここから開けるようになります。</p>
+        </div>
+        <span class="soon">準備中</span>
+      </div>
+      <div class="day-card is-disabled" aria-disabled="true">
+        <span class="day-badge">DAY 20</span>
+        <div>
+          <h3>デプロイ戦略（Blue/Green、カナリア、線形）</h3>
+          <p>準備中です。公開され次第、ここから開けるようになります。</p>
+        </div>
+        <span class="soon">準備中</span>
+      </div>
+      <div class="day-card is-disabled" aria-disabled="true">
+        <span class="day-badge">DAY 21</span>
+        <div>
+          <h3>SageMaker Model Registry と承認ワークフロー</h3>
+          <p>準備中です。公開され次第、ここから開けるようになります。</p>
+        </div>
+        <span class="soon">準備中</span>
+      </div>
+      <div class="day-card is-disabled" aria-disabled="true">
+        <span class="day-badge">DAY 22</span>
+        <div>
+          <h3>SageMaker Pipelines</h3>
+          <p>準備中です。公開され次第、ここから開けるようになります。</p>
+        </div>
+        <span class="soon">準備中</span>
+      </div>
+      <div class="day-card is-disabled" aria-disabled="true">
+        <span class="day-badge">DAY 23</span>
+        <div>
+          <h3>AWS Step Functions と Amazon EventBridge によるオーケストレーション</h3>
+          <p>準備中です。公開され次第、ここから開けるようになります。</p>
+        </div>
+        <span class="soon">準備中</span>
+      </div>
+      <div class="day-card is-disabled" aria-disabled="true">
+        <span class="day-badge">DAY 24</span>
+        <div>
+          <h3>CI/CD（CodePipeline / CodeBuild）と ML ワークフローの自動化</h3>
+          <p>準備中です。公開され次第、ここから開けるようになります。</p>
+        </div>
+        <span class="soon">準備中</span>
+      </div>
+      <div class="day-card is-disabled" aria-disabled="true">
+        <span class="day-badge">DAY 25</span>
+        <div>
+          <h3>SageMaker Model Monitor とドリフト検知</h3>
+          <p>準備中です。公開され次第、ここから開けるようになります。</p>
+        </div>
+        <span class="soon">準備中</span>
+      </div>
+      <div class="day-card is-disabled" aria-disabled="true">
+        <span class="day-badge">DAY 26</span>
+        <div>
+          <h3>モデルの再学習と A/B テスト</h3>
+          <p>準備中です。公開され次第、ここから開けるようになります。</p>
+        </div>
+        <span class="soon">準備中</span>
+      </div>
+      <div class="day-card is-disabled" aria-disabled="true">
+        <span class="day-badge">DAY 27</span>
+        <div>
+          <h3>Amazon CloudWatch / CloudTrail / X-Ray による監視とトラブルシューティング</h3>
+          <p>準備中です。公開され次第、ここから開けるようになります。</p>
+        </div>
+        <span class="soon">準備中</span>
+      </div>
+      <div class="day-card is-disabled" aria-disabled="true">
+        <span class="day-badge">DAY 28</span>
+        <div>
+          <h3>IAM、VPC、KMS による ML リソースのセキュリティ</h3>
+          <p>準備中です。公開され次第、ここから開けるようになります。</p>
+        </div>
+        <span class="soon">準備中</span>
+      </div>
+      <div class="day-card is-disabled" aria-disabled="true">
+        <span class="day-badge">DAY 29</span>
+        <div>
+          <h3>コスト最適化（スポットインスタンス、SageMaker Savings Plans、Inference Recommender）</h3>
+          <p>準備中です。公開され次第、ここから開けるようになります。</p>
+        </div>
+        <span class="soon">準備中</span>
+      </div>
+      <div class="day-card is-disabled" aria-disabled="true">
+        <span class="day-badge">DAY 30</span>
+        <div>
+          <h3>Amazon Bedrock と生成AI（RAG の基礎を含む）</h3>
+          <p>準備中です。公開され次第、ここから開けるようになります。</p>
+        </div>
+        <span class="soon">準備中</span>
+      </div>
+      <div class="day-card is-disabled" aria-disabled="true">
+        <span class="day-badge">DAY 31</span>
+        <div>
+          <h3>Amazon Rekognition と Amazon Comprehend</h3>
+          <p>準備中です。公開され次第、ここから開けるようになります。</p>
+        </div>
+        <span class="soon">準備中</span>
+      </div>
+      <div class="day-card is-disabled" aria-disabled="true">
+        <span class="day-badge">DAY 32</span>
+        <div>
+          <h3>Amazon Transcribe / Polly / Translate / Textract / Lex / Kendra の使い分け</h3>
+          <p>準備中です。公開され次第、ここから開けるようになります。</p>
+        </div>
+        <span class="soon">準備中</span>
+      </div>
+      <div class="day-card is-disabled" aria-disabled="true">
+        <span class="day-badge">DAY 33</span>
+        <div>
+          <h3>Amazon EMR と Amazon Managed Service for Apache Flink</h3>
+          <p>準備中です。公開され次第、ここから開けるようになります。</p>
+        </div>
+        <span class="soon">準備中</span>
+      </div>
+      <div class="day-card is-disabled" aria-disabled="true">
+        <span class="day-badge">DAY 34</span>
+        <div>
+          <h3>Amazon OpenSearch Service とベクトル検索</h3>
+          <p>準備中です。公開され次第、ここから開けるようになります。</p>
+        </div>
+        <span class="soon">準備中</span>
+      </div>
+      <div class="day-card is-disabled" aria-disabled="true">
+        <span class="day-badge">DAY 35</span>
+        <div>
+          <h3>Amazon DynamoDB / ElastiCache / Redshift の ML 連携での使い分け</h3>
+          <p>準備中です。公開され次第、ここから開けるようになります。</p>
+        </div>
+        <span class="soon">準備中</span>
+      </div>
+      <div class="day-card is-disabled" aria-disabled="true">
+        <span class="day-badge">DAY 36</span>
+        <div>
+          <h3>Amazon ECR / ECS / EKS とコンテナでのモデル運用</h3>
+          <p>準備中です。公開され次第、ここから開けるようになります。</p>
+        </div>
+        <span class="soon">準備中</span>
+      </div>
+      <div class="day-card is-disabled" aria-disabled="true">
+        <span class="day-badge">DAY 37</span>
+        <div>
+          <h3>AWS Lambda と AWS Batch を使った推論・前処理</h3>
+          <p>準備中です。公開され次第、ここから開けるようになります。</p>
+        </div>
+        <span class="soon">準備中</span>
+      </div>
+      <div class="day-card is-disabled" aria-disabled="true">
+        <span class="day-badge">DAY 38</span>
+        <div>
+          <h3>データの取り込み設計の総復習（バッチ vs ストリーミング）</h3>
+          <p>準備中です。公開され次第、ここから開けるようになります。</p>
+        </div>
+        <span class="soon">準備中</span>
+      </div>
+      <div class="day-card is-disabled" aria-disabled="true">
+        <span class="day-badge">DAY 39</span>
+        <div>
+          <h3>特徴量設計の総復習</h3>
+          <p>準備中です。公開され次第、ここから開けるようになります。</p>
+        </div>
+        <span class="soon">準備中</span>
+      </div>
+      <div class="day-card is-disabled" aria-disabled="true">
+        <span class="day-badge">DAY 40</span>
+        <div>
+          <h3>モデル選定とチューニングの総復習</h3>
+          <p>準備中です。公開され次第、ここから開けるようになります。</p>
+        </div>
+        <span class="soon">準備中</span>
+      </div>
+      <div class="day-card is-disabled" aria-disabled="true">
+        <span class="day-badge">DAY 41</span>
+        <div>
+          <h3>デプロイ方式の選び方の総復習</h3>
+          <p>準備中です。公開され次第、ここから開けるようになります。</p>
+        </div>
+        <span class="soon">準備中</span>
+      </div>
+      <div class="day-card is-disabled" aria-disabled="true">
+        <span class="day-badge">DAY 42</span>
+        <div>
+          <h3>監視・ドリフト・セキュリティの総復習</h3>
+          <p>準備中です。公開され次第、ここから開けるようになります。</p>
+        </div>
+        <span class="soon">準備中</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head">
+      <span class="sec-num">ROUND 2</span>
+      <h2>2巡目（Day 43〜84）</h2>
+      <p>1巡目と同じテーマを、試験で問われる観点で深掘りする復習編です。</p>
+    </div>
+    <div class="day-list">
+      <div class="day-card is-disabled" aria-disabled="true">
+        <span class="day-badge">DAY 43</span>
+        <div>
+          <h3>Amazon SageMaker の全体像とMLライフサイクル（2巡目・試験対策）</h3>
+          <p>準備中です。1巡目と同じテーマを、試験で問われる観点で深掘りする回です。</p>
+        </div>
+        <span class="soon">準備中</span>
+      </div>
+      <div class="day-card is-disabled" aria-disabled="true">
+        <span class="day-badge">DAY 44</span>
+        <div>
+          <h3>Amazon S3 とデータレイク、ファイル形式（CSV / JSON / Parquet / ORC / RecordIO）（2巡目・試験対策）</h3>
+          <p>準備中です。1巡目と同じテーマを、試験で問われる観点で深掘りする回です。</p>
+        </div>
+        <span class="soon">準備中</span>
+      </div>
+      <div class="day-card is-disabled" aria-disabled="true">
+        <span class="day-badge">DAY 45</span>
+        <div>
+          <h3>Amazon Kinesis とストリーミングデータ（2巡目・試験対策）</h3>
+          <p>準備中です。1巡目と同じテーマを、試験で問われる観点で深掘りする回です。</p>
+        </div>
+        <span class="soon">準備中</span>
+      </div>
+      <div class="day-card is-disabled" aria-disabled="true">
+        <span class="day-badge">DAY 46</span>
+        <div>
+          <h3>AWS Glue と AWS Glue DataBrew（2巡目・試験対策）</h3>
+          <p>準備中です。1巡目と同じテーマを、試験で問われる観点で深掘りする回です。</p>
+        </div>
+        <span class="soon">準備中</span>
+      </div>
+      <div class="day-card is-disabled" aria-disabled="true">
+        <span class="day-badge">DAY 47</span>
+        <div>
+          <h3>Amazon Athena と AWS Lake Formation（2巡目・試験対策）</h3>
+          <p>準備中です。1巡目と同じテーマを、試験で問われる観点で深掘りする回です。</p>
+        </div>
+        <span class="soon">準備中</span>
+      </div>
+      <div class="day-card is-disabled" aria-disabled="true">
+        <span class="day-badge">DAY 48</span>
+        <div>
+          <h3>特徴量エンジニアリングの基礎（スケーリング、エンコーディング、欠損・外れ値）（2巡目・試験対策）</h3>
+          <p>準備中です。1巡目と同じテーマを、試験で問われる観点で深掘りする回です。</p>
+        </div>
+        <span class="soon">準備中</span>
+      </div>
+      <div class="day-card is-disabled" aria-disabled="true">
+        <span class="day-badge">DAY 49</span>
+        <div>
+          <h3>SageMaker Data Wrangler と SageMaker Feature Store（2巡目・試験対策）</h3>
+          <p>準備中です。1巡目と同じテーマを、試験で問われる観点で深掘りする回です。</p>
+        </div>
+        <span class="soon">準備中</span>
+      </div>
+      <div class="day-card is-disabled" aria-disabled="true">
+        <span class="day-badge">DAY 50</span>
+        <div>
+          <h3>SageMaker Ground Truth とデータのラベリング（2巡目・試験対策）</h3>
+          <p>準備中です。1巡目と同じテーマを、試験で問われる観点で深掘りする回です。</p>
+        </div>
+        <span class="soon">準備中</span>
+      </div>
+      <div class="day-card is-disabled" aria-disabled="true">
+        <span class="day-badge">DAY 51</span>
+        <div>
+          <h3>データの偏り（バイアス）と SageMaker Clarify（学習前バイアス）（2巡目・試験対策）</h3>
+          <p>準備中です。1巡目と同じテーマを、試験で問われる観点で深掘りする回です。</p>
+        </div>
+        <span class="soon">準備中</span>
+      </div>
+      <div class="day-card is-disabled" aria-disabled="true">
+        <span class="day-badge">DAY 52</span>
+        <div>
+          <h3>データ品質の検証と暗号化・匿名化（PII対応）（2巡目・試験対策）</h3>
+          <p>準備中です。1巡目と同じテーマを、試験で問われる観点で深掘りする回です。</p>
+        </div>
+        <span class="soon">準備中</span>
+      </div>
+      <div class="day-card is-disabled" aria-disabled="true">
+        <span class="day-badge">DAY 53</span>
+        <div>
+          <h3>教師あり学習と教師なし学習、分類・回帰・クラスタリングの選び方（2巡目・試験対策）</h3>
+          <p>準備中です。1巡目と同じテーマを、試験で問われる観点で深掘りする回です。</p>
+        </div>
+        <span class="soon">準備中</span>
+      </div>
+      <div class="day-card is-disabled" aria-disabled="true">
+        <span class="day-badge">DAY 54</span>
+        <div>
+          <h3>SageMaker の組み込みアルゴリズムの選び方（2巡目・試験対策）</h3>
+          <p>準備中です。1巡目と同じテーマを、試験で問われる観点で深掘りする回です。</p>
+        </div>
+        <span class="soon">準備中</span>
+      </div>
+      <div class="day-card is-disabled" aria-disabled="true">
+        <span class="day-badge">DAY 55</span>
+        <div>
+          <h3>SageMaker Training Jobs と分散学習（2巡目・試験対策）</h3>
+          <p>準備中です。1巡目と同じテーマを、試験で問われる観点で深掘りする回です。</p>
+        </div>
+        <span class="soon">準備中</span>
+      </div>
+      <div class="day-card is-disabled" aria-disabled="true">
+        <span class="day-badge">DAY 56</span>
+        <div>
+          <h3>SageMaker Autopilot と JumpStart（2巡目・試験対策）</h3>
+          <p>準備中です。1巡目と同じテーマを、試験で問われる観点で深掘りする回です。</p>
+        </div>
+        <span class="soon">準備中</span>
+      </div>
+      <div class="day-card is-disabled" aria-disabled="true">
+        <span class="day-badge">DAY 57</span>
+        <div>
+          <h3>ハイパーパラメータチューニング（Automatic Model Tuning）（2巡目・試験対策）</h3>
+          <p>準備中です。1巡目と同じテーマを、試験で問われる観点で深掘りする回です。</p>
+        </div>
+        <span class="soon">準備中</span>
+      </div>
+      <div class="day-card is-disabled" aria-disabled="true">
+        <span class="day-badge">DAY 58</span>
+        <div>
+          <h3>評価指標（Accuracy / Precision / Recall / F1 / AUC）と混同行列（2巡目・試験対策）</h3>
+          <p>準備中です。1巡目と同じテーマを、試験で問われる観点で深掘りする回です。</p>
+        </div>
+        <span class="soon">準備中</span>
+      </div>
+      <div class="day-card is-disabled" aria-disabled="true">
+        <span class="day-badge">DAY 59</span>
+        <div>
+          <h3>過学習と正則化、交差検証（2巡目・試験対策）</h3>
+          <p>準備中です。1巡目と同じテーマを、試験で問われる観点で深掘りする回です。</p>
+        </div>
+        <span class="soon">準備中</span>
+      </div>
+      <div class="day-card is-disabled" aria-disabled="true">
+        <span class="day-badge">DAY 60</span>
+        <div>
+          <h3>推論エンドポイントの種類（リアルタイム / サーバーレス / 非同期 / バッチ変換）（2巡目・試験対策）</h3>
+          <p>準備中です。1巡目と同じテーマを、試験で問われる観点で深掘りする回です。</p>
+        </div>
+        <span class="soon">準備中</span>
+      </div>
+      <div class="day-card is-disabled" aria-disabled="true">
+        <span class="day-badge">DAY 61</span>
+        <div>
+          <h3>マルチモデルエンドポイントとオートスケーリング（2巡目・試験対策）</h3>
+          <p>準備中です。1巡目と同じテーマを、試験で問われる観点で深掘りする回です。</p>
+        </div>
+        <span class="soon">準備中</span>
+      </div>
+      <div class="day-card is-disabled" aria-disabled="true">
+        <span class="day-badge">DAY 62</span>
+        <div>
+          <h3>デプロイ戦略（Blue/Green、カナリア、線形）（2巡目・試験対策）</h3>
+          <p>準備中です。1巡目と同じテーマを、試験で問われる観点で深掘りする回です。</p>
+        </div>
+        <span class="soon">準備中</span>
+      </div>
+      <div class="day-card is-disabled" aria-disabled="true">
+        <span class="day-badge">DAY 63</span>
+        <div>
+          <h3>SageMaker Model Registry と承認ワークフロー（2巡目・試験対策）</h3>
+          <p>準備中です。1巡目と同じテーマを、試験で問われる観点で深掘りする回です。</p>
+        </div>
+        <span class="soon">準備中</span>
+      </div>
+      <div class="day-card is-disabled" aria-disabled="true">
+        <span class="day-badge">DAY 64</span>
+        <div>
+          <h3>SageMaker Pipelines（2巡目・試験対策）</h3>
+          <p>準備中です。1巡目と同じテーマを、試験で問われる観点で深掘りする回です。</p>
+        </div>
+        <span class="soon">準備中</span>
+      </div>
+      <div class="day-card is-disabled" aria-disabled="true">
+        <span class="day-badge">DAY 65</span>
+        <div>
+          <h3>AWS Step Functions と Amazon EventBridge によるオーケストレーション（2巡目・試験対策）</h3>
+          <p>準備中です。1巡目と同じテーマを、試験で問われる観点で深掘りする回です。</p>
+        </div>
+        <span class="soon">準備中</span>
+      </div>
+      <div class="day-card is-disabled" aria-disabled="true">
+        <span class="day-badge">DAY 66</span>
+        <div>
+          <h3>CI/CD（CodePipeline / CodeBuild）と ML ワークフローの自動化（2巡目・試験対策）</h3>
+          <p>準備中です。1巡目と同じテーマを、試験で問われる観点で深掘りする回です。</p>
+        </div>
+        <span class="soon">準備中</span>
+      </div>
+      <div class="day-card is-disabled" aria-disabled="true">
+        <span class="day-badge">DAY 67</span>
+        <div>
+          <h3>SageMaker Model Monitor とドリフト検知（2巡目・試験対策）</h3>
+          <p>準備中です。1巡目と同じテーマを、試験で問われる観点で深掘りする回です。</p>
+        </div>
+        <span class="soon">準備中</span>
+      </div>
+      <div class="day-card is-disabled" aria-disabled="true">
+        <span class="day-badge">DAY 68</span>
+        <div>
+          <h3>モデルの再学習と A/B テスト（2巡目・試験対策）</h3>
+          <p>準備中です。1巡目と同じテーマを、試験で問われる観点で深掘りする回です。</p>
+        </div>
+        <span class="soon">準備中</span>
+      </div>
+      <div class="day-card is-disabled" aria-disabled="true">
+        <span class="day-badge">DAY 69</span>
+        <div>
+          <h3>Amazon CloudWatch / CloudTrail / X-Ray による監視とトラブルシューティング（2巡目・試験対策）</h3>
+          <p>準備中です。1巡目と同じテーマを、試験で問われる観点で深掘りする回です。</p>
+        </div>
+        <span class="soon">準備中</span>
+      </div>
+      <div class="day-card is-disabled" aria-disabled="true">
+        <span class="day-badge">DAY 70</span>
+        <div>
+          <h3>IAM、VPC、KMS による ML リソースのセキュリティ（2巡目・試験対策）</h3>
+          <p>準備中です。1巡目と同じテーマを、試験で問われる観点で深掘りする回です。</p>
+        </div>
+        <span class="soon">準備中</span>
+      </div>
+      <div class="day-card is-disabled" aria-disabled="true">
+        <span class="day-badge">DAY 71</span>
+        <div>
+          <h3>コスト最適化（スポットインスタンス、SageMaker Savings Plans、Inference Recommender）（2巡目・試験対策）</h3>
+          <p>準備中です。1巡目と同じテーマを、試験で問われる観点で深掘りする回です。</p>
+        </div>
+        <span class="soon">準備中</span>
+      </div>
+      <div class="day-card is-disabled" aria-disabled="true">
+        <span class="day-badge">DAY 72</span>
+        <div>
+          <h3>Amazon Bedrock と生成AI（RAG の基礎を含む）（2巡目・試験対策）</h3>
+          <p>準備中です。1巡目と同じテーマを、試験で問われる観点で深掘りする回です。</p>
+        </div>
+        <span class="soon">準備中</span>
+      </div>
+      <div class="day-card is-disabled" aria-disabled="true">
+        <span class="day-badge">DAY 73</span>
+        <div>
+          <h3>Amazon Rekognition と Amazon Comprehend（2巡目・試験対策）</h3>
+          <p>準備中です。1巡目と同じテーマを、試験で問われる観点で深掘りする回です。</p>
+        </div>
+        <span class="soon">準備中</span>
+      </div>
+      <div class="day-card is-disabled" aria-disabled="true">
+        <span class="day-badge">DAY 74</span>
+        <div>
+          <h3>Amazon Transcribe / Polly / Translate / Textract / Lex / Kendra の使い分け（2巡目・試験対策）</h3>
+          <p>準備中です。1巡目と同じテーマを、試験で問われる観点で深掘りする回です。</p>
+        </div>
+        <span class="soon">準備中</span>
+      </div>
+      <div class="day-card is-disabled" aria-disabled="true">
+        <span class="day-badge">DAY 75</span>
+        <div>
+          <h3>Amazon EMR と Amazon Managed Service for Apache Flink（2巡目・試験対策）</h3>
+          <p>準備中です。1巡目と同じテーマを、試験で問われる観点で深掘りする回です。</p>
+        </div>
+        <span class="soon">準備中</span>
+      </div>
+      <div class="day-card is-disabled" aria-disabled="true">
+        <span class="day-badge">DAY 76</span>
+        <div>
+          <h3>Amazon OpenSearch Service とベクトル検索（2巡目・試験対策）</h3>
+          <p>準備中です。1巡目と同じテーマを、試験で問われる観点で深掘りする回です。</p>
+        </div>
+        <span class="soon">準備中</span>
+      </div>
+      <div class="day-card is-disabled" aria-disabled="true">
+        <span class="day-badge">DAY 77</span>
+        <div>
+          <h3>Amazon DynamoDB / ElastiCache / Redshift の ML 連携での使い分け（2巡目・試験対策）</h3>
+          <p>準備中です。1巡目と同じテーマを、試験で問われる観点で深掘りする回です。</p>
+        </div>
+        <span class="soon">準備中</span>
+      </div>
+      <div class="day-card is-disabled" aria-disabled="true">
+        <span class="day-badge">DAY 78</span>
+        <div>
+          <h3>Amazon ECR / ECS / EKS とコンテナでのモデル運用（2巡目・試験対策）</h3>
+          <p>準備中です。1巡目と同じテーマを、試験で問われる観点で深掘りする回です。</p>
+        </div>
+        <span class="soon">準備中</span>
+      </div>
+      <div class="day-card is-disabled" aria-disabled="true">
+        <span class="day-badge">DAY 79</span>
+        <div>
+          <h3>AWS Lambda と AWS Batch を使った推論・前処理（2巡目・試験対策）</h3>
+          <p>準備中です。1巡目と同じテーマを、試験で問われる観点で深掘りする回です。</p>
+        </div>
+        <span class="soon">準備中</span>
+      </div>
+      <div class="day-card is-disabled" aria-disabled="true">
+        <span class="day-badge">DAY 80</span>
+        <div>
+          <h3>データの取り込み設計の総復習（バッチ vs ストリーミング）（2巡目・試験対策）</h3>
+          <p>準備中です。1巡目と同じテーマを、試験で問われる観点で深掘りする回です。</p>
+        </div>
+        <span class="soon">準備中</span>
+      </div>
+      <div class="day-card is-disabled" aria-disabled="true">
+        <span class="day-badge">DAY 81</span>
+        <div>
+          <h3>特徴量設計の総復習（2巡目・試験対策）</h3>
+          <p>準備中です。1巡目と同じテーマを、試験で問われる観点で深掘りする回です。</p>
+        </div>
+        <span class="soon">準備中</span>
+      </div>
+      <div class="day-card is-disabled" aria-disabled="true">
+        <span class="day-badge">DAY 82</span>
+        <div>
+          <h3>モデル選定とチューニングの総復習（2巡目・試験対策）</h3>
+          <p>準備中です。1巡目と同じテーマを、試験で問われる観点で深掘りする回です。</p>
+        </div>
+        <span class="soon">準備中</span>
+      </div>
+      <div class="day-card is-disabled" aria-disabled="true">
+        <span class="day-badge">DAY 83</span>
+        <div>
+          <h3>デプロイ方式の選び方の総復習（2巡目・試験対策）</h3>
+          <p>準備中です。1巡目と同じテーマを、試験で問われる観点で深掘りする回です。</p>
+        </div>
+        <span class="soon">準備中</span>
+      </div>
+      <div class="day-card is-disabled" aria-disabled="true">
+        <span class="day-badge">DAY 84</span>
+        <div>
+          <h3>監視・ドリフト・セキュリティの総復習（2巡目・試験対策）</h3>
+          <p>準備中です。1巡目と同じテーマを、試験で問われる観点で深掘りする回です。</p>
+        </div>
+        <span class="soon">準備中</span>
+      </div>
     </div>
     <div class="note">
-      💡 <b>読み方のコツ：</b> まずは目次から今日のDayを開いて、最後の確認クイズで答え合わせまでやると定着しやすいよ。
+      💡 <b>読み方のコツ：</b> 公開済みのDayはカードをタップして開けます。「準備中」のDayは順番に公開されていくので、楽しみにお待ちください。
     </div>
   </section>
 
