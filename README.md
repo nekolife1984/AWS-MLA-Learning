@@ -16,7 +16,7 @@ https://nekolife1984.github.io/AWS-MLA-Learning/
 | Day 2 | Amazon S3 とデータレイク、ファイル形式（CSV / JSON / Parquet / ORC / RecordIO） | [day-02](day-02/) |
 | Day 3 | Amazon Kinesis とストリーミングデータ | [day-03](day-03/) |
 | Day 4 | AWS Glue と AWS Glue DataBrew | [day-04](day-04/) |
-| Day 5 | Amazon Athena と AWS Lake Formation | 準備中 |
+| Day 5 | Amazon Athena と AWS Lake Formation | [day-05](day-05/) |
 | Day 6 | 特徴量エンジニアリングの基礎（スケーリング、エンコーディング、欠損・外れ値） | 準備中 |
 | Day 7 | SageMaker Data Wrangler と SageMaker Feature Store | 準備中 |
 | Day 8 | SageMaker Ground Truth とデータのラベリング | 準備中 |

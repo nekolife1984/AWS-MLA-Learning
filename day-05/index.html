@@ -1,0 +1,559 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="light dark" />
+<link rel="icon" href="data:," />
+<title>MLA解説 Day 5 — Amazon Athena と AWS Lake Formation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;800;900&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f6f7f9; --surface:#ffffff; --surface-2:#fff7ed; --surface-3:#f1f5f9;
+    --ink:#0f172a; --ink-2:#334155; --muted:#64748b; --line:#e2e8f0; --line-strong:#cbd5e1;
+    --orange:#ea580c; --orange-bright:#ff9900; --orange-soft:#ffedd5;
+    --teal:#0f766e; --teal-soft:#ccfbf1; --navy:#13233f; --navy-2:#1e3a5f;
+    --red:#b91c1c; --red-soft:#fee2e2; --green:#15803d; --green-soft:#dcfce7;
+    --shadow:0 10px 30px rgba(15,23,42,.08); --shadow-sm:0 2px 10px rgba(15,23,42,.06); --radius:18px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0b1220; --surface:#111c30; --surface-2:#1c1a12; --surface-3:#16233c;
+      --ink:#f1f5f9; --ink-2:#cbd5e1; --muted:#94a3b8; --line:#24344f; --line-strong:#334155;
+      --orange:#fb923c; --orange-bright:#ff9900; --orange-soft:#431407;
+      --teal:#2dd4bf; --teal-soft:#042f2e; --navy:#0f172a; --navy-2:#1e293b;
+      --red:#fca5a5; --red-soft:#450a0a; --green:#86efac; --green-soft:#052e16;
+      --shadow:0 10px 30px rgba(0,0,0,.35); --shadow-sm:0 2px 10px rgba(0,0,0,.3);
+    }
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Sans JP",system-ui,-apple-system,"Hiragino Kaku Gothic ProN",sans-serif;line-height:1.75;-webkit-font-smoothing:antialiased}
+  a{color:var(--orange)}
+  .wrap{max-width:920px;margin:0 auto;padding:20px 18px 56px}
+  .meta-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:6px 0 18px}
+  .pill{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700;letter-spacing:.02em;padding:5px 11px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink-2)}
+  .pill.day{background:var(--navy);color:#fff;border-color:var(--navy)}
+  @media (prefers-color-scheme: dark){ .pill.day{background:var(--orange-bright);color:#111827;border-color:var(--orange-bright)} }
+  .pill .dot{width:7px;height:7px;border-radius:50%;background:var(--orange-bright);flex:none}
+  .mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
+  .hero{background:var(--navy);color:#fff;border-radius:24px;padding:30px 28px 26px;position:relative;overflow:hidden;box-shadow:var(--shadow)}
+  .hero::after{content:"";position:absolute;right:-70px;top:-70px;width:260px;height:260px;border-radius:50%;border:44px solid rgba(255,153,0,.22);pointer-events:none}
+  .hero::before{content:"";position:absolute;right:54px;bottom:-90px;width:160px;height:160px;border-radius:50%;border:28px solid rgba(45,212,191,.14);pointer-events:none}
+  .hero-kicker{font-size:13px;font-weight:800;letter-spacing:.14em;color:#ffb25e;text-transform:uppercase;margin:0 0 8px;position:relative;z-index:1}
+  .hero h1{font-size:32px;line-height:1.32;font-weight:900;margin:0 0 12px;position:relative;z-index:1;letter-spacing:.01em}
+  .hero h1 .hl{color:var(--orange-bright)}
+  .hero p.lead{margin:0;color:#dbe6f3;font-size:15.5px;max-width:660px;position:relative;z-index:1}
+  .hero-tags{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px;position:relative;z-index:1}
+  .hero-tags span{font-size:12.5px;font-weight:700;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);color:#e2e8f0;padding:4px 10px;border-radius:999px}
+  .oneline{margin-top:16px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;box-shadow:var(--shadow-sm);display:flex;gap:14px;align-items:flex-start}
+  .oneline .icon{flex:none;width:42px;height:42px;border-radius:12px;background:var(--orange-soft);display:grid;place-items:center;font-size:21px}
+  .oneline h2{font-size:13px;letter-spacing:.08em;color:var(--orange);margin:0 0 4px;font-weight:800}
+  .oneline p{margin:0;font-size:16.5px;font-weight:700;line-height:1.65;color:var(--ink)}
+  .oneline p b{color:var(--orange)}
+  section{margin-top:36px}
+  .sec-head{display:flex;align-items:baseline;gap:12px;margin-bottom:6px;flex-wrap:wrap}
+  .sec-num{font-family:"IBM Plex Mono",monospace;font-size:13px;font-weight:600;color:#fff;background:var(--orange);width:28px;height:28px;border-radius:8px;display:inline-grid;place-items:center;flex:none;align-self:center}
+  .sec-head h2{font-size:22px;font-weight:900;margin:0;line-height:1.3}
+  .sec-sub{color:var(--muted);font-size:14px;margin:2px 0 16px 40px}
+  @media (max-width:560px){ .sec-sub{margin-left:0} .hero h1{font-size:27px} }
+  .flow{display:grid;grid-template-columns:1fr auto 1fr auto 1fr auto 1fr;align-items:stretch;gap:6px;margin:14px 0 18px}
+  .flow-step{background:var(--surface);border:1.5px solid var(--line);border-radius:16px;padding:14px 12px;text-align:center;cursor:pointer;transition:border-color .15s,background .15s,transform .15s;font-family:inherit;color:var(--ink)}
+  .flow-step:hover{transform:translateY(-2px)}
+  .flow-step:focus-visible{outline:3px solid var(--orange-bright);outline-offset:2px}
+  .flow-step.active{border-color:var(--orange);background:var(--surface-2)}
+  .flow-step .step-emoji{font-size:24px;display:block;line-height:1.2}
+  .flow-step .step-no{font-family:"IBM Plex Mono",monospace;font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.08em}
+  .flow-step .step-name{font-weight:800;font-size:15px;display:block;margin-top:2px}
+  .flow-step .step-en{font-size:11.5px;color:var(--muted);display:block}
+  .flow-arrow{display:grid;place-items:center;color:var(--line-strong);font-size:18px;font-weight:900;pointer-events:none}
+  @media (max-width:640px){
+    .flow{grid-template-columns:1fr;gap:8px}
+    .flow-arrow{transform:rotate(90deg);padding:0;height:18px}
+    .flow-step{display:flex;align-items:center;gap:12px;text-align:left;padding:12px 14px}
+    .flow-step .step-emoji{font-size:22px}
+    .flow-step .step-meta{text-align:left}
+  }
+  .phase-panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:22px;box-shadow:var(--shadow-sm)}
+  .phase-panel h3{margin:0 0 4px;font-size:19px;font-weight:900}
+  .phase-panel h3 .en{font-size:13px;color:var(--muted);font-weight:700;margin-left:8px;letter-spacing:.04em}
+  .phase-panel .phase-desc{color:var(--ink-2);font-size:14.5px;margin:0 0 16px}
+  .feat-list{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  @media (max-width:700px){ .feat-list{grid-template-columns:1fr} }
+  .feat{background:var(--surface-3);border-radius:14px;padding:14px 15px}
+  .feat .fname{font-weight:800;font-size:14.5px;margin:0 0 4px}
+  .feat .fname .mono{font-size:13px;color:var(--orange);display:block;font-weight:600}
+  .feat p{margin:0;font-size:13.5px;color:var(--ink-2);line-height:1.65}
+  .phase-tip{margin-top:14px;font-size:13.5px;background:var(--teal-soft);color:var(--ink);border-radius:12px;padding:11px 14px}
+  .phase-tip b{color:var(--teal)}
+  .sqlbox{margin-top:14px;background:var(--navy);color:#e2e8f0;border-radius:12px;padding:14px 16px;font-family:"IBM Plex Mono",monospace;font-size:13px;line-height:1.7;overflow-wrap:anywhere;white-space:pre-wrap}
+  .sqlbox .kw{color:#ffb25e;font-weight:600}
+  @media (prefers-color-scheme: dark){ .sqlbox{background:#0f172a;border:1px solid var(--line)} }
+  /* cost bars */
+  .cost-card{margin-top:14px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:20px 22px;box-shadow:var(--shadow-sm)}
+  .cost-card h3{margin:0 0 4px;font-size:16px;font-weight:800}
+  .cost-card>p{margin:0 0 14px;font-size:14px;color:var(--ink-2)}
+  .bar-row{display:grid;grid-template-columns:170px 1fr 64px;gap:12px;align-items:center;margin:10px 0;font-size:13.5px}
+  .bar-row .bl{font-weight:700;color:var(--ink-2);line-height:1.45}
+  .bar-track{height:16px;background:var(--surface-3);border-radius:999px;overflow:hidden}
+  .bar-fill{height:100%;border-radius:999px;background:#f87171}
+  .bar-fill.good{background:var(--teal)}
+  .bar-row .bv{font-family:"IBM Plex Mono",monospace;font-weight:600;color:var(--ink);text-align:right}
+  @media (max-width:560px){ .bar-row{grid-template-columns:1fr 56px} .bar-track{grid-column:1/-1;order:3} }
+  .cost-note{font-size:13px;color:var(--muted);margin:10px 0 0}
+  .use-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media (max-width:640px){ .use-grid{grid-template-columns:1fr} }
+  .use-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow-sm)}
+  .use-card h3{margin:0 0 2px;font-size:17px;font-weight:900}
+  .use-card .role{font-size:12.5px;font-weight:800;letter-spacing:.06em;color:var(--orange);margin:0 0 10px}
+  .use-card p,.use-card li{font-size:14.5px;color:var(--ink-2)}
+  .use-card p{margin:0}
+  .use-card ul{margin:8px 0 0;padding-left:20px}
+  .use-card li{margin:5px 0}
+  .mini-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+  .mini-tags span{font-size:12px;font-weight:700;background:var(--surface-3);border:1px solid var(--line);color:var(--ink-2);padding:3px 9px;border-radius:999px}
+  .exam-list{display:flex;flex-direction:column;gap:12px}
+  .exam-item{display:flex;gap:14px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;box-shadow:var(--shadow-sm)}
+  .exam-item .badge{flex:none;width:34px;height:34px;border-radius:50%;background:var(--navy);color:#fff;font-weight:800;font-size:15px;display:grid;place-items:center;margin-top:2px}
+  @media (prefers-color-scheme: dark){ .exam-item .badge{background:var(--orange-bright);color:#111827} }
+  .exam-item h3{margin:0 0 4px;font-size:16px;font-weight:800}
+  .exam-item p{margin:0;font-size:14.5px;color:var(--ink-2)}
+  .exam-item code,.feat code,.compare code,.sum-table code{font-family:"IBM Plex Mono",monospace;font-size:.88em;background:var(--surface-3);border:1px solid var(--line);padding:1px 6px;border-radius:6px;color:var(--orange);font-weight:600;white-space:nowrap}
+  .compare{display:flex;flex-direction:column;gap:14px}
+  .compare-row{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow-sm)}
+  .compare-vs{display:grid;grid-template-columns:1fr auto 1fr}
+  @media (max-width:640px){ .compare-vs{grid-template-columns:1fr} .vs-badge{margin:0 auto} }
+  .compare-cell{padding:18px 20px}
+  .compare-cell.a{background:var(--surface-2)}
+  .compare-cell h3{margin:0 0 5px;font-size:16.5px;font-weight:900}
+  .compare-cell p{margin:0;font-size:14px;color:var(--ink-2)}
+  .vs-badge{align-self:center;width:38px;height:38px;border-radius:50%;background:var(--ink);color:var(--bg);font-weight:900;font-size:12px;display:grid;place-items:center;letter-spacing:.05em;z-index:1;margin:0 -6px}
+  .compare-note{padding:12px 20px;border-top:1px dashed var(--line-strong);font-size:13.5px;color:var(--ink-2);background:var(--surface)}
+  .compare-note b{color:var(--orange)}
+  /* summary table — stacks on mobile */
+  .sum-table{width:100%;border-collapse:separate;border-spacing:0;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow-sm);font-size:14px}
+  .sum-table th,.sum-table td{padding:13px 16px;text-align:left;vertical-align:top;border-bottom:1px solid var(--line);line-height:1.6}
+  .sum-table thead th{background:var(--navy);color:#fff;font-size:13px;letter-spacing:.04em;border-bottom:none}
+  @media (prefers-color-scheme: dark){ .sum-table thead th{background:var(--navy-2)} }
+  .sum-table tbody tr:last-child td{border-bottom:none}
+  .sum-table td:first-child{font-weight:800;white-space:nowrap}
+  .sum-table td{color:var(--ink-2)}
+  .sum-table td:first-child{color:var(--ink)}
+  @media (max-width:640px){
+    .sum-table thead{display:none}
+    .sum-table,.sum-table tbody,.sum-table tr,.sum-table td{display:block;width:100%}
+    .sum-table tr{padding:12px 16px;border-bottom:1px solid var(--line)}
+    .sum-table tbody tr:last-child{border-bottom:none}
+    .sum-table td{border-bottom:none;padding:3px 0}
+    .sum-table td:first-child{font-size:15.5px;margin-bottom:2px}
+  }
+  .quiz{background:var(--navy);color:#fff;border-radius:24px;padding:26px 24px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+  .quiz::after{content:"?";position:absolute;right:14px;top:-28px;font-size:150px;font-weight:900;color:rgba(255,255,255,.06);line-height:1;pointer-events:none}
+  .quiz .q-label{font-size:12.5px;font-weight:800;letter-spacing:.12em;color:#ffb25e;margin:0 0 8px}
+  .quiz h2{font-size:20px;font-weight:900;margin:0 0 6px;line-height:1.45}
+  .quiz .q-sub{color:#cbd5e1;font-size:13.5px;margin:0 0 18px}
+  .quiz-block{margin-bottom:22px;position:relative;z-index:1}
+  .quiz-block:last-of-type{margin-bottom:0}
+  .quiz-q{font-weight:700;font-size:15.5px;margin:0 0 12px;line-height:1.65}
+  .quiz-q .qno{color:var(--orange-bright);font-family:"IBM Plex Mono",monospace;margin-right:6px}
+  .choices{display:flex;flex-direction:column;gap:9px}
+  .choice{text-align:left;font-family:inherit;font-size:14.5px;font-weight:600;color:#e2e8f0;background:rgba(255,255,255,.07);border:1.5px solid rgba(255,255,255,.22);border-radius:12px;padding:12px 15px;cursor:pointer;display:flex;gap:10px;align-items:flex-start;line-height:1.55}
+  .choice:hover{border-color:var(--orange-bright)}
+  .choice:focus-visible{outline:3px solid var(--orange-bright);outline-offset:2px}
+  .choice .letter{flex:none;width:24px;height:24px;border-radius:7px;background:rgba(255,255,255,.14);display:grid;place-items:center;font-size:13px;font-weight:800;margin-top:1px}
+  .choice.correct{border-color:#4ade80;background:rgba(74,222,128,.16);color:#fff}
+  .choice.correct .letter{background:#22c55e;color:#fff}
+  .choice.wrong{border-color:#f87171;background:rgba(248,113,113,.14)}
+  .choice.wrong .letter{background:#dc2626;color:#fff}
+  .choice:disabled{cursor:default;opacity:.92}
+  .feedback{display:none;margin-top:12px;border-radius:12px;padding:12px 15px;font-size:14px;line-height:1.65}
+  .feedback.show{display:block}
+  .feedback.ok{background:rgba(74,222,128,.15);border:1px solid rgba(74,222,128,.4)}
+  .feedback.ng{background:rgba(248,113,113,.13);border:1px solid rgba(248,113,113,.4)}
+  .feedback b{color:#fff}
+  .quiz-score{margin-top:18px;font-size:14px;font-weight:700;color:#e2e8f0;display:none;position:relative;z-index:1}
+  .quiz-score.show{display:block}
+  .quiz-score .big{color:var(--orange-bright);font-size:18px}
+  .next-card{margin-top:36px;display:flex;gap:16px;align-items:center;background:var(--surface);border:1.5px dashed var(--line-strong);border-radius:var(--radius);padding:20px 22px}
+  .next-card .n-emoji{font-size:32px;flex:none}
+  .next-card h2{margin:0 0 2px;font-size:16.5px;font-weight:900}
+  .next-card p{margin:0;font-size:14px;color:var(--muted)}
+  .next-card .day6{margin-left:auto;flex:none;font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:13px;color:var(--orange);border:1px solid var(--orange);border-radius:999px;padding:5px 12px;white-space:nowrap}
+  @media (max-width:560px){ .next-card{flex-wrap:wrap} .next-card .day6{margin-left:0} }
+  footer{margin-top:28px;text-align:center;color:var(--muted);font-size:12.5px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="meta-row" aria-label="メタ情報">
+    <span class="pill day">DAY 5 / 84</span>
+    <span class="pill"><span class="dot"></span>AWS MLA-C01 対策</span>
+    <span class="pill">⏱ 読了目安 約4分</span>
+    <span class="pill mono">2026.10.31 SAT</span>
+  </div>
+
+  <header class="hero">
+    <p class="hero-kicker">Machine Learning — Lesson 05</p>
+    <h1>Amazon <span class="hl">Athena</span> と<br>AWS <span class="hl">Lake Formation</span></h1>
+    <p class="lead">S3 に置いたデータを、その場で SQL で調べる Athena。そして「誰に・どこまで見せるか」を一元管理する Lake Formation。データレイクの「調べる役」と「守る役」をセットで押さえます。</p>
+    <div class="hero-tags">
+      <span># サーバーレス</span><span># 標準SQL</span><span># データレイク</span><span># ガバナンス</span>
+    </div>
+  </header>
+
+  <div class="oneline">
+    <div class="icon" aria-hidden="true">💡</div>
+    <div>
+      <h2>一言で言うと</h2>
+      <p><b>Athena</b> は S3 のデータをサーバーレスで SQL 検索するサービス、<b>Lake Formation</b> はデータレイクの権限をまとめて管理するガバナンスの仕組みです。</p>
+    </div>
+  </div>
+
+  <!-- 01 diagram -->
+  <section aria-labelledby="sec1">
+    <div class="sec-head"><span class="sec-num">01</span><h2 id="sec1">図解 ― クエリが結果を返すまで</h2></div>
+    <p class="sec-sub">ステップをタップすると、各段階の役割が切り替わります。データは S3 に置いたまま動かさないのがポイントです。</p>
+
+    <div class="flow" role="tablist" aria-label="Athenaのクエリの流れ">
+      <button class="flow-step active" role="tab" aria-selected="true" data-phase="0" id="tab-0">
+        <span class="step-emoji" aria-hidden="true">🪣</span>
+        <span class="step-meta"><span class="step-no">STEP 1</span><span class="step-name">S3 にデータ</span><span class="step-en">Amazon S3</span></span>
+      </button>
+      <span class="flow-arrow" aria-hidden="true">›</span>
+      <button class="flow-step" role="tab" aria-selected="false" data-phase="1" id="tab-1">
+        <span class="step-emoji" aria-hidden="true">📖</span>
+        <span class="step-meta"><span class="step-no">STEP 2</span><span class="step-name">テーブル定義</span><span class="step-en">Glue Data Catalog</span></span>
+      </button>
+      <span class="flow-arrow" aria-hidden="true">›</span>
+      <button class="flow-step" role="tab" aria-selected="false" data-phase="2" id="tab-2">
+        <span class="step-emoji" aria-hidden="true">🔍</span>
+        <span class="step-meta"><span class="step-no">STEP 3</span><span class="step-name">SQL で検索</span><span class="step-en">Amazon Athena</span></span>
+      </button>
+      <span class="flow-arrow" aria-hidden="true">›</span>
+      <button class="flow-step" role="tab" aria-selected="false" data-phase="3" id="tab-3">
+        <span class="step-emoji" aria-hidden="true">🛡️</span>
+        <span class="step-meta"><span class="step-no">STEP 4</span><span class="step-name">権限をチェック</span><span class="step-en">Lake Formation</span></span>
+      </button>
+    </div>
+
+    <div class="phase-panel" role="tabpanel" aria-live="polite" id="phasePanel"></div>
+
+    <div class="cost-card" aria-label="スキャン量とコストのイメージ">
+      <h3>💰 コストは「読んだ量」で決まる</h3>
+      <p>Athena の課金はスキャンしたデータ量ベースです。読み込む範囲を絞るほど、そのまま安く・速くなります（下はイメージ図です）。</p>
+      <div class="bar-row">
+        <span class="bl">CSV を全件スキャン</span>
+        <span class="bar-track"><span class="bar-fill" style="display:block;width:100%"></span></span>
+        <span class="bv">100%</span>
+      </div>
+      <div class="bar-row">
+        <span class="bl">日付でパーティション分割</span>
+        <span class="bar-track"><span class="bar-fill" style="display:block;width:45%;background:#f59e0b"></span></span>
+        <span class="bv">約45%</span>
+      </div>
+      <div class="bar-row">
+        <span class="bl">Parquet 化 ＋ パーティション</span>
+        <span class="bar-track"><span class="bar-fill good" style="display:block;width:15%"></span></span>
+        <span class="bv">約15%</span>
+      </div>
+      <p class="cost-note">※ 割合は概念を伝えるための目安です。実際の削減幅はデータやクエリによって変わります。</p>
+    </div>
+  </section>
+
+  <!-- 02 when -->
+  <section aria-labelledby="sec2">
+    <div class="sec-head"><span class="sec-num">02</span><h2 id="sec2">何ができる・いつ使う？</h2></div>
+    <p class="sec-sub">役割は真逆に近い2サービスです。「調べたい」なら Athena、「見せ方を管理したい」なら Lake Formation と覚えましょう。</p>
+    <div class="use-grid">
+      <div class="use-card">
+        <h3>🔍 Amazon Athena</h3>
+        <p class="role">役割：S3 のデータを「調べる」</p>
+        <p>S3 に置いた CSV・JSON・Parquet などのファイルを、サーバーやクラスターを用意せず、標準 SQL でその場で調べられます。</p>
+        <ul>
+          <li>アドホックな調査（「とりあえず中身を見たい」）</li>
+          <li>ログ分析や集計のスポットチェック</li>
+          <li>ML 学習前のデータ確認（分布・欠損のチェック）</li>
+        </ul>
+        <div class="mini-tags"><span>サーバーレス</span><span>課金はクエリした分だけ</span><span>標準SQL</span></div>
+      </div>
+      <div class="use-card">
+        <h3>🛡️ AWS Lake Formation</h3>
+        <p class="role">役割：データレイクを「守る・管理する」</p>
+        <p>Glue Data Catalog を中心に、データベース・テーブル・カラム・行レベルまで細かく権限を管理できます。</p>
+        <ul>
+          <li><b>LF-Tags</b> を使えば、タグ単位で権限をまとめて管理できる</li>
+          <li>S3 のバケットポリシーや IAM ポリシーをばらばらに書かずに済む</li>
+          <li>「部署 A にはこのカラムだけ見せる」といった統制が可能</li>
+        </ul>
+        <div class="mini-tags"><span>細粒度の権限管理</span><span>LF-Tags</span><span>ガバナンス</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 03 exam -->
+  <section aria-labelledby="sec3">
+    <div class="sec-head"><span class="sec-num">03</span><h2 id="sec3">試験で問われるポイント</h2></div>
+    <p class="sec-sub">MLA-C01 では、Athena の課金モデルと、Lake Formation の権限の細かさが繰り返し問われます。</p>
+    <div class="exam-list">
+      <div class="exam-item">
+        <div class="badge">1</div>
+        <div>
+          <h3>Athena はサーバーレス ＋ スキャン量課金</h3>
+          <p>課金はクエリで<b>スキャンしたデータ量</b>ベースです。<code>パーティション分割</code>と、<code>Parquet</code> などカラムナー（列指向）形式への変換で、スキャン量とコストを減らせます。「Athena のコストを下げたい」という問題は、ほぼこの2つが答えです。</p>
+        </div>
+      </div>
+      <div class="exam-item">
+        <div class="badge">2</div>
+        <div>
+          <h3>テーブル定義は Glue Data Catalog、実データは S3</h3>
+          <p>Athena のテーブル定義（スキーマ情報）は <code>Glue Data Catalog</code> に置かれます。ここがひっかけポイントで、<b>テーブルを削除しても S3 の実データは消えません</b>。定義と実体が別物だという理解が問われます。</p>
+        </div>
+      </div>
+      <div class="exam-item">
+        <div class="badge">3</div>
+        <div>
+          <h3>Lake Formation はセルレベルまでの細粒度制御</h3>
+          <p>権限はデータベース・テーブル・カラム・行・<code>セル</code> レベルまで細かく設定できます。しかもその権限は <code>Athena</code>・<code>Glue</code>・<code>EMR</code>・<code>Redshift Spectrum</code> といった統合エンジンで共通に効きます。「カラム単位で見せ分けたい」→ Lake Formation が鉄板の答えです。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 04 compare -->
+  <section aria-labelledby="sec4">
+    <div class="sec-head"><span class="sec-num">04</span><h2 id="sec4">間違えやすい！似たものとの違い</h2></div>
+    <p class="sec-sub">Day 4 の Glue との関係が最大のひっかけポイントです。「クエリする／変換する／守る」で切り分けましょう。</p>
+    <div class="compare">
+      <div class="compare-row">
+        <div class="compare-vs">
+          <div class="compare-cell a">
+            <h3>Amazon Athena</h3>
+            <p>S3 のデータを<b>クエリする</b>もの。SQL で読み取って答えを返すだけで、データ自体は書き換えません。</p>
+          </div>
+          <div class="vs-badge" aria-hidden="true">VS</div>
+          <div class="compare-cell">
+            <h3>AWS Glue</h3>
+            <p>データを<b>変換・ETL する</b>もの。形式を変えたり、整形したりして、別のデータを作り出します。</p>
+          </div>
+        </div>
+        <div class="compare-note">🔑 見分け方：<b>Athena 自体は ETL しません</b>。「Parquet に変換したい」なら Glue、「Parquet を検索したい」なら Athena です。変換してから検索する、という組み合わせもよく出ます。</div>
+      </div>
+
+      <div class="compare-row">
+        <div class="compare-vs">
+          <div class="compare-cell a">
+            <h3>AWS Lake Formation</h3>
+            <p>データの<b>権限とガバナンスを管理する</b>もの。「誰が・どこまで見られるか」を決める役目です。</p>
+          </div>
+          <div class="vs-badge" aria-hidden="true">VS</div>
+          <div class="compare-cell">
+            <h3>データの移動・変換サービス</h3>
+            <p>Glue の ETL や Kinesis など、データを<b>運んだり形を変えたりする</b>サービス群の役割です。</p>
+          </div>
+        </div>
+        <div class="compare-note">🔑 見分け方：Lake Formation は<b>データを移動・変換するサービスではありません</b>。データは S3 に置いたまま、アクセス権だけを一元管理します。</div>
+      </div>
+    </div>
+
+    <table class="sum-table" style="margin-top:14px" aria-label="3サービスの役割まとめ">
+      <thead>
+        <tr><th scope="col">サービス</th><th scope="col">ひとことで言うと</th><th scope="col">覚えるキーワード</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Amazon Athena</td>
+          <td>S3 のデータをサーバーレスで SQL 検索する</td>
+          <td>スキャン量課金 ／ Parquet ＋ パーティションで節約</td>
+        </tr>
+        <tr>
+          <td>AWS Glue</td>
+          <td>データの変換・ETL とカタログ管理を行う</td>
+          <td>ETL ／ Data Catalog ／ クローラー</td>
+        </tr>
+        <tr>
+          <td>AWS Lake Formation</td>
+          <td>データレイクの権限を細かく一元管理する</td>
+          <td>カラム・行・セルレベル ／ LF-Tags</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- quiz -->
+  <section aria-labelledby="quizTitle">
+    <div class="quiz">
+      <p class="q-label">CHECK QUIZ — 確認クイズ</p>
+      <h2 id="quizTitle">今日の理解度チェック（全2問）</h2>
+      <p class="q-sub">選択肢をタップすると、その場で答え合わせができます。</p>
+
+      <div class="quiz-block" data-quiz="0">
+        <p class="quiz-q"><span class="qno">Q1.</span>S3 に置いた Parquet ファイルを、サーバーを用意せず SQL でさっと調べたいとき、使うのはどれでしょう？</p>
+        <div class="choices">
+          <button class="choice" data-correct="false"><span class="letter">A</span><span>AWS Glue</span></button>
+          <button class="choice" data-correct="true"><span class="letter">B</span><span>Amazon Athena</span></button>
+          <button class="choice" data-correct="false"><span class="letter">C</span><span>AWS Lake Formation</span></button>
+        </div>
+        <div class="feedback" role="status"></div>
+      </div>
+
+      <div class="quiz-block" data-quiz="1">
+        <p class="quiz-q"><span class="qno">Q2.</span>「特定のカラムや行だけを見せる」といった細かい権限管理を、データレイク全体で一元化したいとき、使うのはどれでしょう？</p>
+        <div class="choices">
+          <button class="choice" data-correct="false"><span class="letter">A</span><span>Amazon Athena</span></button>
+          <button class="choice" data-correct="false"><span class="letter">B</span><span>S3 のバケットポリシーをテーブルごとに個別設定する</span></button>
+          <button class="choice" data-correct="true"><span class="letter">C</span><span>AWS Lake Formation</span></button>
+        </div>
+        <div class="feedback" role="status"></div>
+      </div>
+
+      <p class="quiz-score" id="quizScore"></p>
+    </div>
+  </section>
+
+  <div class="next-card">
+    <div class="n-emoji" aria-hidden="true">🧮</div>
+    <div>
+      <h2>明日は Day 6：特徴量エンジニアリングの基礎</h2>
+      <p>スケーリング、エンコーディング、欠損・外れ値の扱い方など、モデルに渡す前の「データの下ごしらえ」がテーマです。</p>
+    </div>
+    <span class="day6">DAY 6 →</span>
+  </div>
+
+  <footer>
+    <p>MLA毎日解説 ― Day 5 ｜ Amazon Athena と AWS Lake Formation</p>
+  </footer>
+
+</div>
+
+<script>
+(function(){
+  var phases = [
+    {
+      title: "S3 にデータを置く",
+      en: "AMAZON S3",
+      desc: "出発点は、データレイクの置き場所である S3 です。Athena はデータをどこかへコピーせず、S3 に置いたファイルを直接読みにいきます。",
+      feats: [
+        { name: "対応フォーマット", en: "CSV / JSON / Parquet / ORC", text: "CSV や JSON のほか、列指向の Parquet や ORC にも対応します。形式の選び方が、そのままコストと速度に効いてきます。" },
+        { name: "データは動かさない", en: "Query in Place", text: "専用のデータベースに取り込み直す必要はありません。S3 にあるものが、そのまま検索対象になります。" },
+        { name: "パーティション", en: "Partitioning", text: "日付や地域などでフォルダを分けておくと、Athena は必要なフォルダだけを読めます。スキャン量削減の第一歩です。" }
+      ],
+      tip: "試験ヒント：「S3 のデータをそのまま SQL で」が Athena の合言葉。わざわざ DB へ移す設計は、たいてい遠回りです。",
+      sql: null
+    },
+    {
+      title: "テーブル定義を Catalog に置く",
+      en: "GLUE DATA CATALOG",
+      desc: "S3 のファイルはただのバイト列です。「どの列が何型か」というテーブル定義（スキーマ）を Glue Data Catalog に登録して、初めて SQL で扱えるようになります。",
+      feats: [
+        { name: "定義と実体は別物", en: "Metadata vs Data", text: "Catalog にあるのは「定義」だけ。実データは S3 に残ります。だからテーブルを削除しても、S3 のデータは消えません。" },
+        { name: "クローラーで自動登録", en: "Glue Crawler", text: "Glue のクローラーが S3 を巡回して、スキーマを推測し Catalog にテーブルを自動作成できます（Day 4 の内容です）。" },
+        { name: "共有されるカタログ", en: "Shared Catalog", text: "同じ Catalog を Athena 以外のサービスも参照します。Lake Formation の権限管理も、この Catalog が中心です。" }
+      ],
+      tip: "試験ヒント：「Athena のテーブルを消したらデータも消えた」は誤り。消えるのは Catalog 上の定義だけです。",
+      sql: null
+    },
+    {
+      title: "Athena が SQL で検索する",
+      en: "AMAZON ATHENA",
+      desc: "あとは標準 SQL を書くだけです。サーバーの起動やクラスター管理は不要で、クエリを実行したときだけコンピューティングが動きます。",
+      feats: [
+        { name: "サーバーレス", en: "Serverless", text: "用意するインフラはありません。SQL を投げれば結果が返ってくる、それだけに集中できます。" },
+        { name: "課金はスキャン量", en: "Pay per Query", text: "料金は読み込んだデータ量に応じて発生します。読む量を減らす工夫 ＝ そのままコスト最適化です。" },
+        { name: "向いている用途", en: "Ad-hoc Analysis", text: "アドホックな調査、ログ分析、学習前のデータ確認など、「今すぐ・たまに調べたい」場面が得意です。" }
+      ],
+      tip: "試験ヒント：コスト削減策は「パーティション分割」と「Parquet などカラムナー形式への変換」の2点セットで覚えましょう。",
+      sql: "<span class=\"kw\">SELECT</span> user_id, <span class=\"kw\">COUNT</span>(*) <span class=\"kw\">AS</span> cnt\n<span class=\"kw\">FROM</span> access_logs\n<span class=\"kw\">WHERE</span> dt = '2026-10-30'\n<span class=\"kw\">GROUP BY</span> user_id;"
+    },
+    {
+      title: "Lake Formation が権限をチェック",
+      en: "AWS LAKE FORMATION",
+      desc: "クエリの裏側では、Lake Formation が「この人は、どのテーブル・カラム・行まで見てよいか」をチェックし、許可された範囲だけが結果に返ります。",
+      feats: [
+        { name: "細粒度のアクセス制御", en: "Fine-grained Access", text: "データベース／テーブル／カラム／行／セルという細かさで権限を設定できます。「給与カラムは人事だけ」といった制御が可能です。" },
+        { name: "LF-Tags でまとめて管理", en: "LF-Tags", text: "データにタグを付け、タグ単位で権限を付与する仕組みです。テーブルが増えても、ポリシーを大量に書き足さずに済みます。" },
+        { name: "統合エンジンで共通", en: "Integrated Engines", text: "Athena・Glue・EMR・Redshift Spectrum など、対応エンジン全体で同じ権限が効きます。管理は Lake Formation の一か所で完結します。" }
+      ],
+      tip: "試験ヒント：「カラム単位・行単位で見せ分けたい」「権限管理を一元化したい」と来たら Lake Formation です。",
+      sql: null
+    }
+  ];
+
+  var panel = document.getElementById('phasePanel');
+  var tabs = Array.prototype.slice.call(document.querySelectorAll('.flow-step'));
+
+  function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
+
+  function renderPhase(i){
+    var p = phases[i];
+    var featsHtml = p.feats.map(function(f){
+      return '<div class="feat"><p class="fname"><span class="mono">' + esc(f.en) + '</span>' + esc(f.name) + '</p><p>' + esc(f.text) + '</p></div>';
+    }).join('');
+    var sqlHtml = p.sql ? '<div class="sqlbox" aria-label="SQLの例">' + p.sql + '</div>' : '';
+    panel.innerHTML =
+      '<h3>' + esc(p.title) + '<span class="en">' + esc(p.en) + '</span></h3>' +
+      '<p class="phase-desc">' + esc(p.desc) + '</p>' +
+      '<div class="feat-list">' + featsHtml + '</div>' +
+      sqlHtml +
+      '<p class="phase-tip"><b>🎯 </b>' + esc(p.tip) + '</p>';
+    tabs.forEach(function(t, idx){
+      var on = idx === i;
+      t.classList.toggle('active', on);
+      t.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+  }
+
+  tabs.forEach(function(t){
+    t.addEventListener('click', function(){ renderPhase(parseInt(t.getAttribute('data-phase'), 10)); });
+  });
+  renderPhase(0);
+
+  /* quiz */
+  var totalQ = document.querySelectorAll('.quiz-block').length;
+  var answered = {};
+  var correctCount = 0;
+
+  var explanations = [
+    { ok: "正解！ <b>Amazon Athena</b> です。サーバーレスで、S3 の Parquet を標準 SQL のまま調べられます。Glue は変換・ETL、Lake Formation は権限管理が役割でしたね。",
+      ng: "残念、正解は <b>B：Amazon Athena</b> です。「サーバーを用意せず SQL で調べる」が合言葉。Glue は変換・ETL、Lake Formation は権限管理のサービスです。" },
+    { ok: "正解！ <b>AWS Lake Formation</b> です。カラム・行・セルレベルまでの細粒度制御を一元管理でき、LF-Tags を使えばタグ単位での管理もできます。",
+      ng: "残念、正解は <b>C：AWS Lake Formation</b> です。バケットポリシーや IAM を個別に書く方法では、カラム・行レベルの見せ分けはできません。そこを一元化するのが Lake Formation です。" }
+  ];
+
+  document.querySelectorAll('.quiz-block').forEach(function(block){
+    var qi = parseInt(block.getAttribute('data-quiz'), 10);
+    var feedback = block.querySelector('.feedback');
+    block.querySelectorAll('.choice').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        if (answered[qi]) return;
+        answered[qi] = true;
+        var isCorrect = btn.getAttribute('data-correct') === 'true';
+        if (isCorrect) correctCount++;
+        block.querySelectorAll('.choice').forEach(function(b){
+          b.disabled = true;
+          if (b.getAttribute('data-correct') === 'true') b.classList.add('correct');
+        });
+        if (!isCorrect) btn.classList.add('wrong');
+        feedback.innerHTML = (isCorrect ? '⭕ ' : '❌ ') + (isCorrect ? explanations[qi].ok : explanations[qi].ng);
+        feedback.classList.add('show', isCorrect ? 'ok' : 'ng');
+        updateScore();
+      });
+    });
+  });
+
+  function updateScore(){
+    var done = Object.keys(answered).length;
+    var scoreEl = document.getElementById('quizScore');
+    if (done === totalQ) {
+      scoreEl.innerHTML = correctCount === totalQ
+        ? '🎉 結果：<span class="big">' + correctCount + ' / ' + totalQ + ' 問正解</span> ― 完璧です！「調べる＝Athena、守る＝Lake Formation、変換する＝Glue」の切り分けがバッチリ身についています。'
+        : '結果：<span class="big">' + correctCount + ' / ' + totalQ + ' 問正解</span> ― 間違えたところは上の「似たものとの違い」の比較表を見直してみてください。';
+      scoreEl.classList.add('show');
+    }
+  }
+})();
+</script>
+</body>
+</html>
