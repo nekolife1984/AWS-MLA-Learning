@@ -1,0 +1,722 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="light dark" />
+<link rel="icon" href="data:," />
+<title>MLA解説 Day 6 — 特徴量エンジニアリングの基礎</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;800;900&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f6f7f9;
+    --surface:#ffffff;
+    --surface-2:#fff7ed;
+    --surface-3:#f1f5f9;
+    --ink:#0f172a;
+    --ink-2:#334155;
+    --muted:#64748b;
+    --line:#e2e8f0;
+    --line-strong:#cbd5e1;
+    --orange:#ea580c;
+    --orange-bright:#ff9900;
+    --orange-soft:#ffedd5;
+    --teal:#0f766e;
+    --teal-soft:#ccfbf1;
+    --navy:#13233f;
+    --navy-2:#1e3a5f;
+    --red:#b91c1c;
+    --red-soft:#fee2e2;
+    --green:#15803d;
+    --green-soft:#dcfce7;
+    --shadow:0 10px 30px rgba(15,23,42,.08);
+    --shadow-sm:0 2px 10px rgba(15,23,42,.06);
+    --radius:18px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0b1220;
+      --surface:#111c30;
+      --surface-2:#1c1a12;
+      --surface-3:#16233c;
+      --ink:#f1f5f9;
+      --ink-2:#cbd5e1;
+      --muted:#94a3b8;
+      --line:#24344f;
+      --line-strong:#334155;
+      --orange:#fb923c;
+      --orange-bright:#ff9900;
+      --orange-soft:#431407;
+      --teal:#2dd4bf;
+      --teal-soft:#042f2e;
+      --navy:#0f172a;
+      --navy-2:#1e293b;
+      --red:#fca5a5;
+      --red-soft:#450a0a;
+      --green:#86efac;
+      --green-soft:#052e16;
+      --shadow:0 10px 30px rgba(0,0,0,.35);
+      --shadow-sm:0 2px 10px rgba(0,0,0,.3);
+    }
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:"Noto Sans JP", system-ui, -apple-system, "Hiragino Kaku Gothic ProN", sans-serif;
+    line-height:1.75;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:var(--orange)}
+  .wrap{max-width:920px;margin:0 auto;padding:20px 18px 56px}
+
+  /* ---------- top meta ---------- */
+  .meta-row{
+    display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:6px 0 18px;
+  }
+  .pill{
+    display:inline-flex;align-items:center;gap:6px;
+    font-size:12.5px;font-weight:700;letter-spacing:.02em;
+    padding:5px 11px;border-radius:999px;border:1px solid var(--line);
+    background:var(--surface);color:var(--ink-2);
+  }
+  .pill.day{background:var(--navy);color:#fff;border-color:var(--navy)}
+  @media (prefers-color-scheme: dark){ .pill.day{background:var(--orange-bright);color:#111827;border-color:var(--orange-bright)} }
+  .pill .dot{width:7px;height:7px;border-radius:50%;background:var(--orange-bright);flex:none}
+  .mono{font-family:"IBM Plex Mono", ui-monospace, monospace}
+
+  /* ---------- hero ---------- */
+  .hero{
+    background:var(--navy);
+    color:#fff;
+    border-radius:24px;
+    padding:30px 28px 26px;
+    position:relative;
+    overflow:hidden;
+    box-shadow:var(--shadow);
+  }
+  .hero::after{
+    content:"";position:absolute;right:-70px;top:-70px;width:260px;height:260px;border-radius:50%;
+    border:44px solid rgba(255,153,0,.22);pointer-events:none;
+  }
+  .hero::before{
+    content:"";position:absolute;right:54px;bottom:-90px;width:160px;height:160px;border-radius:50%;
+    border:28px solid rgba(45,212,191,.14);pointer-events:none;
+  }
+  .hero-kicker{font-size:13px;font-weight:800;letter-spacing:.14em;color:#ffb25e;text-transform:uppercase;margin:0 0 8px;position:relative;z-index:1}
+  .hero h1{font-size:32px;line-height:1.35;font-weight:900;margin:0 0 12px;position:relative;z-index:1;letter-spacing:.01em}
+  .hero h1 .hl{color:var(--orange-bright)}
+  .hero p.lead{margin:0;color:#dbe6f3;font-size:15.5px;max-width:640px;position:relative;z-index:1}
+  .hero-tags{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px;position:relative;z-index:1}
+  .hero-tags span{font-size:12.5px;font-weight:700;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);color:#e2e8f0;padding:4px 10px;border-radius:999px}
+
+  .oneline{
+    margin-top:16px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+    padding:18px 20px;box-shadow:var(--shadow-sm);display:flex;gap:14px;align-items:flex-start;
+  }
+  .oneline .icon{
+    flex:none;width:42px;height:42px;border-radius:12px;background:var(--orange-soft);display:grid;place-items:center;font-size:21px;
+  }
+  .oneline h2{font-size:13px;letter-spacing:.08em;color:var(--orange);margin:0 0 4px;font-weight:800}
+  .oneline p{margin:0;font-size:16.5px;font-weight:700;line-height:1.6;color:var(--ink)}
+  .oneline p b{color:var(--orange)}
+
+  /* ---------- sections ---------- */
+  section{margin-top:36px}
+  .sec-head{display:flex;align-items:baseline;gap:12px;margin-bottom:6px;flex-wrap:wrap}
+  .sec-num{
+    font-family:"IBM Plex Mono",monospace;font-size:13px;font-weight:600;color:#fff;background:var(--orange);
+    width:28px;height:28px;border-radius:8px;display:inline-grid;place-items:center;flex:none;align-self:center;
+  }
+  .sec-head h2{font-size:22px;font-weight:900;margin:0;line-height:1.3}
+  .sec-sub{color:var(--muted);font-size:14px;margin:2px 0 16px 40px}
+  @media (max-width:560px){ .sec-sub{margin-left:0} }
+
+  /* ---------- technique flow tabs ---------- */
+  .flow{display:grid;grid-template-columns:1fr auto 1fr auto 1fr auto 1fr;align-items:stretch;gap:6px;margin:14px 0 18px}
+  .flow-step{
+    background:var(--surface);border:1.5px solid var(--line);border-radius:16px;padding:14px 12px;text-align:center;cursor:pointer;
+    transition:border-color .15s, background .15s, transform .15s;font-family:inherit;color:var(--ink);
+  }
+  .flow-step:hover{transform:translateY(-2px)}
+  .flow-step:focus-visible{outline:3px solid var(--orange-bright);outline-offset:2px}
+  .flow-step.active{border-color:var(--orange);background:var(--surface-2)}
+  .flow-step .step-emoji{font-size:24px;display:block;line-height:1.2}
+  .flow-step .step-no{font-family:"IBM Plex Mono",monospace;font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.08em}
+  .flow-step .step-name{font-weight:800;font-size:15px;display:block;margin-top:2px}
+  .flow-step .step-en{font-size:11.5px;color:var(--muted);display:block}
+  .flow-arrow{display:grid;place-items:center;color:var(--line-strong);font-size:18px;font-weight:900;pointer-events:none}
+  @media (max-width:640px){
+    .flow{grid-template-columns:1fr;gap:8px}
+    .flow-arrow{transform:rotate(90deg);padding:0;height:18px}
+    .flow-step{display:flex;align-items:center;gap:12px;text-align:left;padding:12px 14px}
+    .flow-step .step-emoji{font-size:22px}
+    .flow-step .step-meta{text-align:left}
+  }
+  @media (prefers-reduced-motion: reduce){
+    .flow-step{transition:none}
+    .flow-step:hover{transform:none}
+    html{scroll-behavior:auto}
+  }
+  .phase-panel{
+    background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:22px;box-shadow:var(--shadow-sm);
+  }
+  .phase-panel h3{margin:0 0 4px;font-size:19px;font-weight:900}
+  .phase-panel h3 .en{font-size:13px;color:var(--muted);font-weight:700;margin-left:8px;letter-spacing:.04em}
+  .phase-panel .phase-desc{color:var(--ink-2);font-size:14.5px;margin:0 0 16px}
+  .feat-list{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  @media (max-width:700px){ .feat-list{grid-template-columns:1fr} }
+  .feat{background:var(--surface-3);border-radius:14px;padding:14px 15px}
+  .feat .fname{font-weight:800;font-size:14.5px;margin:0 0 4px}
+  .feat .fname .mono{font-size:13px;color:var(--orange);display:block;font-weight:600}
+  .feat p{margin:0;font-size:13.5px;color:var(--ink-2);line-height:1.65}
+  .phase-tip{margin-top:14px;font-size:13.5px;background:var(--teal-soft);color:var(--ink);border-radius:12px;padding:11px 14px}
+  .phase-tip b{color:var(--teal)}
+  .phase-warn{margin-top:10px;font-size:13.5px;background:var(--red-soft);color:var(--ink);border-radius:12px;padding:11px 14px}
+  .phase-warn b{color:var(--red)}
+
+  /* ---------- scale diagram ---------- */
+  .diagram{
+    margin-top:16px;background:var(--surface-3);border-radius:14px;padding:16px 18px;
+  }
+  .diagram h4{margin:0 0 4px;font-size:14px;font-weight:800}
+  .diagram p.d-sub{margin:0 0 12px;font-size:13px;color:var(--ink-2)}
+  .bar-row{display:grid;grid-template-columns:92px 1fr 118px;gap:10px;align-items:center;margin:8px 0}
+  .bar-row .b-label{font-size:13px;font-weight:700}
+  .bar-track{height:16px;background:var(--line);border-radius:8px;overflow:hidden}
+  .bar-fill{height:100%;border-radius:8px;background:var(--orange)}
+  .bar-fill.teal{background:var(--teal)}
+  .bar-row .b-val{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--muted);text-align:right}
+  @media (max-width:560px){
+    .bar-row{grid-template-columns:72px 1fr 92px;gap:8px}
+    .bar-row .b-val{font-size:11px}
+  }
+  .diagram .d-note{margin:10px 0 0;font-size:13px;color:var(--ink-2)}
+  .diagram .d-note b{color:var(--orange)}
+
+  /* ---------- tables ---------- */
+  .tbl-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow-sm);margin-bottom:16px}
+  .tbl-card > h3{margin:0;padding:16px 20px 0;font-size:16.5px;font-weight:900}
+  .tbl-card > p.tbl-sub{margin:2px 0 0;padding:0 20px;font-size:13.5px;color:var(--muted)}
+  .tbl-scroll{padding:14px 20px 18px}
+  table.cmp{width:100%;border-collapse:collapse;font-size:14px}
+  table.cmp th,table.cmp td{padding:10px 12px;text-align:left;vertical-align:top;border-bottom:1px solid var(--line);line-height:1.6}
+  table.cmp thead th{background:var(--surface-3);font-weight:800;font-size:13.5px;border-bottom:2px solid var(--line-strong)}
+  table.cmp thead th.hl-col{color:var(--orange)}
+  table.cmp tbody th{font-weight:800;white-space:nowrap;color:var(--ink)}
+  table.cmp td{color:var(--ink-2)}
+  table.cmp tr:last-child th,table.cmp tr:last-child td{border-bottom:none}
+  table.cmp code{
+    font-family:"IBM Plex Mono",monospace;font-size:.88em;background:var(--surface-3);border:1px solid var(--line);
+    padding:1px 6px;border-radius:6px;color:var(--orange);font-weight:600;white-space:nowrap;
+  }
+  @media (max-width:640px){
+    table.cmp,table.cmp thead,table.cmp tbody,table.cmp tr,table.cmp th,table.cmp td{display:block;width:100%}
+    table.cmp thead{display:none}
+    table.cmp tr{border:1px solid var(--line);border-radius:12px;margin-bottom:12px;padding:6px 4px;background:var(--surface)}
+    table.cmp tbody th{border-bottom:none;padding-bottom:2px;font-size:15px}
+    table.cmp td{border-bottom:none;padding:4px 12px 8px}
+    table.cmp td::before{content:attr(data-th);display:block;font-size:11.5px;font-weight:800;letter-spacing:.06em;color:var(--orange);margin-bottom:1px}
+    table.cmp tr:last-child th,table.cmp tr:last-child td{border-bottom:none}
+  }
+
+  /* ---------- exam points ---------- */
+  .exam-list{display:flex;flex-direction:column;gap:12px}
+  .exam-item{
+    display:flex;gap:14px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;box-shadow:var(--shadow-sm);
+  }
+  .exam-item .badge{
+    flex:none;width:34px;height:34px;border-radius:50%;background:var(--navy);color:#fff;font-weight:800;font-size:15px;display:grid;place-items:center;margin-top:2px;
+  }
+  @media (prefers-color-scheme: dark){ .exam-item .badge{background:var(--orange-bright);color:#111827} }
+  .exam-item h3{margin:0 0 4px;font-size:16px;font-weight:800}
+  .exam-item p{margin:0;font-size:14.5px;color:var(--ink-2)}
+  .exam-item code,.compare code,.phase-panel code{
+    font-family:"IBM Plex Mono",monospace;font-size:.88em;background:var(--surface-3);border:1px solid var(--line);
+    padding:1px 6px;border-radius:6px;color:var(--orange);font-weight:600;white-space:nowrap;
+  }
+
+  /* ---------- compare (pitfalls) ---------- */
+  .compare{display:flex;flex-direction:column;gap:14px}
+  .compare-row{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow-sm)}
+  .compare-vs{display:grid;grid-template-columns:1fr auto 1fr}
+  @media (max-width:640px){ .compare-vs{grid-template-columns:1fr} .vs-badge{margin:0 auto} }
+  .compare-cell{padding:18px 20px}
+  .compare-cell.a{background:var(--red-soft)}
+  .compare-cell.b{background:var(--green-soft)}
+  .compare-cell h3{margin:0 0 5px;font-size:16.5px;font-weight:900}
+  .compare-cell p{margin:0;font-size:14px;color:var(--ink-2)}
+  .vs-badge{align-self:center;width:38px;height:38px;border-radius:50%;background:var(--ink);color:var(--bg);font-weight:900;font-size:12px;display:grid;place-items:center;letter-spacing:.05em;z-index:1;margin:0 -6px}
+  .compare-note{padding:12px 20px;border-top:1px dashed var(--line-strong);font-size:13.5px;color:var(--ink-2);background:var(--surface)}
+  .compare-note b{color:var(--orange)}
+
+  /* ---------- quiz ---------- */
+  .quiz{
+    background:var(--navy);color:#fff;border-radius:24px;padding:26px 24px;box-shadow:var(--shadow);position:relative;overflow:hidden;
+  }
+  .quiz::after{content:"?";position:absolute;right:14px;top:-28px;font-size:150px;font-weight:900;color:rgba(255,255,255,.06);line-height:1;pointer-events:none}
+  .quiz .q-label{font-size:12.5px;font-weight:800;letter-spacing:.12em;color:#ffb25e;margin:0 0 8px}
+  .quiz h2{font-size:20px;font-weight:900;margin:0 0 6px;line-height:1.45}
+  .quiz .q-sub{color:#cbd5e1;font-size:13.5px;margin:0 0 18px}
+  .quiz-block{margin-bottom:22px;position:relative;z-index:1}
+  .quiz-block:last-of-type{margin-bottom:0}
+  .quiz-q{font-weight:700;font-size:15.5px;margin:0 0 12px;line-height:1.65}
+  .quiz-q .qno{color:var(--orange-bright);font-family:"IBM Plex Mono",monospace;margin-right:6px}
+  .choices{display:flex;flex-direction:column;gap:9px}
+  .choice{
+    text-align:left;font-family:inherit;font-size:14.5px;font-weight:600;color:#e2e8f0;
+    background:rgba(255,255,255,.07);border:1.5px solid rgba(255,255,255,.22);border-radius:12px;
+    padding:12px 15px;cursor:pointer;display:flex;gap:10px;align-items:flex-start;line-height:1.55;
+  }
+  .choice:hover{border-color:var(--orange-bright)}
+  .choice:focus-visible{outline:3px solid var(--orange-bright);outline-offset:2px}
+  .choice .letter{flex:none;width:24px;height:24px;border-radius:7px;background:rgba(255,255,255,.14);display:grid;place-items:center;font-size:13px;font-weight:800;margin-top:1px}
+  .choice.correct{border-color:#4ade80;background:rgba(74,222,128,.16);color:#fff}
+  .choice.correct .letter{background:#22c55e;color:#fff}
+  .choice.wrong{border-color:#f87171;background:rgba(248,113,113,.14)}
+  .choice.wrong .letter{background:#dc2626;color:#fff}
+  .choice:disabled{cursor:default;opacity:.92}
+  .feedback{display:none;margin-top:12px;border-radius:12px;padding:12px 15px;font-size:14px;line-height:1.65}
+  .feedback.show{display:block}
+  .feedback.ok{background:rgba(74,222,128,.15);border:1px solid rgba(74,222,128,.4)}
+  .feedback.ng{background:rgba(248,113,113,.13);border:1px solid rgba(248,113,113,.4)}
+  .feedback b{color:#fff}
+  .quiz-score{margin-top:18px;font-size:14px;font-weight:700;color:#e2e8f0;display:none;position:relative;z-index:1}
+  .quiz-score.show{display:block}
+  .quiz-score .big{color:var(--orange-bright);font-size:18px}
+
+  /* ---------- next / footer ---------- */
+  .next-card{
+    margin-top:36px;display:flex;gap:16px;align-items:center;background:var(--surface);border:1.5px dashed var(--line-strong);
+    border-radius:var(--radius);padding:20px 22px;
+  }
+  .next-card .n-emoji{font-size:32px;flex:none}
+  .next-card h2{margin:0 0 2px;font-size:16.5px;font-weight:900}
+  .next-card p{margin:0;font-size:14px;color:var(--muted)}
+  .next-card .day7{margin-left:auto;flex:none;font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:13px;color:var(--orange);border:1px solid var(--orange);border-radius:999px;padding:5px 12px;white-space:nowrap}
+  @media (max-width:560px){ .next-card{flex-wrap:wrap} .next-card .day7{margin-left:0} }
+  footer{margin-top:28px;text-align:center;color:var(--muted);font-size:12.5px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="meta-row" aria-label="メタ情報">
+    <span class="pill day">DAY 6 / 84</span>
+    <span class="pill"><span class="dot"></span>AWS MLA-C01 対策</span>
+    <span class="pill">⏱ 読了目安 約5分</span>
+    <span class="pill mono">2026.11.01 SUN</span>
+  </div>
+
+  <header class="hero">
+    <p class="hero-kicker">Machine Learning — Lesson 06</p>
+    <h1>特徴量エンジニアリングの<span class="hl">基礎</span><br>スケーリング・欠損・外れ値</h1>
+    <p class="lead">モデルに渡す前の「データの下ごしらえ」が今日のテーマです。数値の尺度をそろえ、カテゴリを数値に変え、欠けた値と飛び抜けた値を処理する——この4つの基本技を押さえます。</p>
+    <div class="hero-tags">
+      <span># スケーリング</span><span># エンコーディング</span><span># 欠損値</span><span># 外れ値</span>
+    </div>
+  </header>
+
+  <div class="oneline">
+    <div class="icon" aria-hidden="true">💡</div>
+    <div>
+      <h2>一言で言うと</h2>
+      <p>特徴量エンジニアリングとは、<b>生データをモデルが学びやすい形に整える作業</b>のことです。良いモデルも、入力データが整っていなければ力を発揮できません。</p>
+    </div>
+  </div>
+
+  <!-- 01 techniques -->
+  <section aria-labelledby="sec1">
+    <div class="sec-head"><span class="sec-num">01</span><h2 id="sec1">4つの整形テクニック</h2></div>
+    <p class="sec-sub">各テクニックをタップすると、要点と使い分けが切り替わります。まずは全体像をこの4つで押さえましょう。</p>
+
+    <div class="flow" role="tablist" aria-label="特徴量エンジニアリングのテクニック">
+      <button class="flow-step active" role="tab" aria-selected="true" data-phase="0" id="tab-0">
+        <span class="step-emoji" aria-hidden="true">📏</span>
+        <span class="step-meta"><span class="step-no">TECH 1</span><span class="step-name">スケーリング</span><span class="step-en">Scaling</span></span>
+      </button>
+      <span class="flow-arrow" aria-hidden="true">›</span>
+      <button class="flow-step" role="tab" aria-selected="false" data-phase="1" id="tab-1">
+        <span class="step-emoji" aria-hidden="true">🔤</span>
+        <span class="step-meta"><span class="step-no">TECH 2</span><span class="step-name">エンコーディング</span><span class="step-en">Encoding</span></span>
+      </button>
+      <span class="flow-arrow" aria-hidden="true">›</span>
+      <button class="flow-step" role="tab" aria-selected="false" data-phase="2" id="tab-2">
+        <span class="step-emoji" aria-hidden="true">🕳️</span>
+        <span class="step-meta"><span class="step-no">TECH 3</span><span class="step-name">欠損値の処理</span><span class="step-en">Missing Values</span></span>
+      </button>
+      <span class="flow-arrow" aria-hidden="true">›</span>
+      <button class="flow-step" role="tab" aria-selected="false" data-phase="3" id="tab-3">
+        <span class="step-emoji" aria-hidden="true">🎯</span>
+        <span class="step-meta"><span class="step-no">TECH 4</span><span class="step-name">外れ値の処理</span><span class="step-en">Outliers</span></span>
+      </button>
+    </div>
+
+    <div class="phase-panel" role="tabpanel" aria-live="polite" id="phasePanel">
+      <!-- JSで差し替え -->
+    </div>
+  </section>
+
+  <!-- 02 tables -->
+  <section aria-labelledby="sec2">
+    <div class="sec-head"><span class="sec-num">02</span><h2 id="sec2">比較表で整理する</h2></div>
+    <p class="sec-sub">「どっちを使うか」の判断軸を表にまとめました。試験ではこの使い分けそのものが問われます。</p>
+
+    <div class="tbl-card">
+      <h3>スケーリング：Min-Max正規化 vs 標準化</h3>
+      <p class="tbl-sub">どちらも「数値の尺度をそろえる」処理ですが、変換の仕方と向く場面が違います。</p>
+      <div class="tbl-scroll">
+        <table class="cmp">
+          <thead>
+            <tr><th scope="col">観点</th><th scope="col" class="hl-col">Min-Max正規化</th><th scope="col">標準化（Zスコア）</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">変換式</th>
+              <td data-th="Min-Max正規化"><code>(x − min) / (max − min)</code></td>
+              <td data-th="標準化"><code>(x − 平均) / 標準偏差</code></td>
+            </tr>
+            <tr>
+              <th scope="row">変換後の範囲</th>
+              <td data-th="Min-Max正規化">0〜1 の範囲に収まる</td>
+              <td data-th="標準化">平均 0・標準偏差 1（範囲は決まらない）</td>
+            </tr>
+            <tr>
+              <th scope="row">外れ値の影響</th>
+              <td data-th="Min-Max正規化">大きい。1つの外れ値で全体が潰れる</td>
+              <td data-th="標準化">比較的受けにくい</td>
+            </tr>
+            <tr>
+              <th scope="row">向く場面</th>
+              <td data-th="Min-Max正規化">範囲を 0〜1 にそろえたいとき、画像のピクセル値など</td>
+              <td data-th="標準化">分布が正規分布に近いとき、多くのMLアルゴリズムの既定の選択肢</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="tbl-card">
+      <h3>エンコーディング：カテゴリの種類で選ぶ</h3>
+      <p class="tbl-sub">カテゴリ変数を数値に変える方法は、「順序があるかどうか」で決まります。</p>
+      <div class="tbl-scroll">
+        <table class="cmp">
+          <thead>
+            <tr><th scope="col">変数の種類</th><th scope="col" class="hl-col">使う手法</th><th scope="col">例・注意点</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">名義変数<br>（順序なし）</th>
+              <td data-th="使う手法">One-Hotエンコーディング</td>
+              <td data-th="例・注意点">都道府県、血液型など。カテゴリごとに 0/1 の列を作る</td>
+            </tr>
+            <tr>
+              <th scope="row">順序変数<br>（順序あり）</th>
+              <td data-th="使う手法">順序エンコーディング</td>
+              <td data-th="例・注意点">満足度（低=0、中=1、高=2）など。順序の情報をそのまま活かせる</td>
+            </tr>
+            <tr>
+              <th scope="row">名義変数に<br>ラベル付け</th>
+              <td data-th="使う手法">ラベルエンコーディング（要注意）</td>
+              <td data-th="例・注意点">東京=0、大阪=1、福岡=2 のような番号付け。モデルが「福岡は東京の2倍」のような<b>存在しない順序・大小関係を誤解</b>する恐れがある</td>
+            </tr>
+            <tr>
+              <th scope="row">高カーディナリティ<br>（種類が多すぎる）</th>
+              <td data-th="使う手法">頻度でまとめる／ターゲットエンコーディング等</td>
+              <td data-th="例・注意点">郵便番号やユーザーIDなど。One-Hotにすると列が爆発的に増えるため、レアなカテゴリを「その他」にまとめるなどの工夫が要る</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- 03 exam -->
+  <section aria-labelledby="sec3">
+    <div class="sec-head"><span class="sec-num">03</span><h2 id="sec3">試験で問われるポイント</h2></div>
+    <p class="sec-sub">MLA-C01 では「どのモデルに・どの前処理が要るか」の組み合わせがシナリオ問題で問われます。</p>
+    <div class="exam-list">
+      <div class="exam-item">
+        <div class="badge">1</div>
+        <div>
+          <h3>スケーリングが効くのは「距離ベース・勾配ベース」のモデル</h3>
+          <p>k-NN、SVM、k-means のような距離ベースのモデルと、線形回帰・ロジスティック回帰・ニューラルネットワークのような勾配ベースのモデルでは、スケーリングの有無が精度と学習の安定性を左右します。逆に<b>決定木系（ランダムフォレスト、XGBoost など）は分岐を値の順序だけで決めるため、スケーリングは基本不要</b>です。</p>
+        </div>
+      </div>
+      <div class="exam-item">
+        <div class="badge">2</div>
+        <div>
+          <h3>補完・変換のパラメータは「学習データだけ」で決める</h3>
+          <p>欠損値を埋める平均値や、標準化の平均・標準偏差は、<b>学習データからだけ計算</b>し、それを検証・テストデータに適用します。全体のデータで計算すると、テストデータの情報が学習に漏れる<b>データリーケージ</b>になり、評価が実際より良く見えてしまいます。</p>
+        </div>
+      </div>
+      <div class="exam-item">
+        <div class="badge">3</div>
+        <div>
+          <h3>エンコーディングは「順序の有無」で選ぶ</h3>
+          <p>順序のない名義変数は <code>One-Hot</code>、順序のある変数は <code>順序エンコーディング</code>。名義変数にラベルエンコーディングを使うと、モデルが番号の大小を意味のある順序と誤解する点が定番の引っかけです。</p>
+        </div>
+      </div>
+      <div class="exam-item">
+        <div class="badge">4</div>
+        <div>
+          <h3>AWS では Data Wrangler / Glue DataBrew が前処理の担い手</h3>
+          <p>SageMaker Data Wrangler や AWS Glue DataBrew には、スケーリング、エンコーディング、欠損値補完といった変換が組み込みで用意されています。「コードを書かずに前処理したい」という要件と結びつけて覚えておきましょう。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 04 pitfalls -->
+  <section aria-labelledby="sec4">
+    <div class="sec-head"><span class="sec-num">04</span><h2 id="sec4">間違えやすい点</h2></div>
+    <p class="sec-sub">「やってしまいがちな処理」と「正しい処理」の対比で確認します。</p>
+    <div class="compare">
+      <div class="compare-row">
+        <div class="compare-vs">
+          <div class="compare-cell a">
+            <h3>❌ 名義変数にラベルエンコーディング</h3>
+            <p>都道府県に 東京=0、大阪=1、福岡=2 と番号を振る。モデルが「2 は 0 より大きい」という<b>実在しない順序関係</b>を学習してしまう。</p>
+          </div>
+          <div class="vs-badge" aria-hidden="true">VS</div>
+          <div class="compare-cell b">
+            <h3>⭕ 名義変数は One-Hot</h3>
+            <p>カテゴリごとに 0/1 の列を分けるので、順序の誤解が生まれない。順序がある変数だけ順序エンコーディングを使う。</p>
+          </div>
+        </div>
+        <div class="compare-note">🔑 見分け方：そのカテゴリに<b>「どちらが大きい」と言える順序</b>があるか？ なければ One-Hot が基本です。</div>
+      </div>
+
+      <div class="compare-row">
+        <div class="compare-vs">
+          <div class="compare-cell a">
+            <h3>❌ 全データで補完値を計算</h3>
+            <p>学習データとテストデータを合わせた全体の平均値で欠損を埋める。テストデータの情報が学習側に漏れる<b>データリーケージ</b>が発生する。</p>
+          </div>
+          <div class="vs-badge" aria-hidden="true">VS</div>
+          <div class="compare-cell b">
+            <h3>⭕ 学習データだけで決めて適用</h3>
+            <p>補完値・標準化の平均と標準偏差は学習データのみから計算し、検証・テストデータにはその値をそのまま適用する。</p>
+          </div>
+        </div>
+        <div class="compare-note">🔑 合言葉：「<b>fit は学習データだけ、transform は全部に</b>」。この原則はスケーリングにも欠損補完にも共通します。</div>
+      </div>
+
+      <div class="compare-row">
+        <div class="compare-vs">
+          <div class="compare-cell a">
+            <h3>❌ 決定木系にも念のためスケーリング</h3>
+            <p>ランダムフォレストや XGBoost にまで標準化をかける。害はないが効果もなく、処理と管理のコストだけが増える。</p>
+          </div>
+          <div class="vs-badge" aria-hidden="true">VS</div>
+          <div class="compare-cell b">
+            <h3>⭕ モデルに合わせて取捨選択</h3>
+            <p>決定木系は値の大小の順序だけで分岐するのでスケーリング不要。距離・勾配を使うモデルに絞って適用する。</p>
+          </div>
+        </div>
+        <div class="compare-note">🔑 見分け方：そのモデルが<b>特徴量同士の「距離」や「勾配」を計算するか</b>が、スケーリング要否の判断軸です。</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- quiz -->
+  <section aria-labelledby="quizTitle">
+    <div class="quiz">
+      <p class="q-label">CHECK QUIZ — 確認クイズ</p>
+      <h2 id="quizTitle">今日の理解度チェック（全3問）</h2>
+      <p class="q-sub">選択肢をタップすると、その場で答え合わせができます。</p>
+
+      <div class="quiz-block" data-quiz="0">
+        <p class="quiz-q"><span class="qno">Q1.</span>k-NN のような距離ベースのモデルで、スケールの大きく異なる特徴量（例：年収と年齢）をそのまま使うと、何が起きる？</p>
+        <div class="choices">
+          <button class="choice" data-correct="false"><span class="letter">A</span><span>小さいスケールの特徴量が距離を支配してしまう</span></button>
+          <button class="choice" data-correct="true"><span class="letter">B</span><span>大きいスケールの特徴量が距離を支配してしまう</span></button>
+          <button class="choice" data-correct="false"><span class="letter">C</span><span>スケールは距離計算に影響しない</span></button>
+        </div>
+        <div class="feedback" role="status"></div>
+      </div>
+
+      <div class="quiz-block" data-quiz="1">
+        <p class="quiz-q"><span class="qno">Q2.</span>欠損値の平均値補完をするとき、補完に使う平均値はどのデータから計算すべき？</p>
+        <div class="choices">
+          <button class="choice" data-correct="false"><span class="letter">A</span><span>学習データとテストデータを合わせた全体</span></button>
+          <button class="choice" data-correct="false"><span class="letter">B</span><span>テストデータのみ</span></button>
+          <button class="choice" data-correct="true"><span class="letter">C</span><span>学習データのみ</span></button>
+        </div>
+        <div class="feedback" role="status"></div>
+      </div>
+
+      <div class="quiz-block" data-quiz="2">
+        <p class="quiz-q"><span class="qno">Q3.</span>順序のないカテゴリ変数（例：血液型）をモデルに渡すとき、基本となるエンコーディングは？</p>
+        <div class="choices">
+          <button class="choice" data-correct="true"><span class="letter">A</span><span>One-Hotエンコーディング</span></button>
+          <button class="choice" data-correct="false"><span class="letter">B</span><span>ラベルエンコーディング</span></button>
+          <button class="choice" data-correct="false"><span class="letter">C</span><span>標準化（Zスコア変換）</span></button>
+        </div>
+        <div class="feedback" role="status"></div>
+      </div>
+
+      <p class="quiz-score" id="quizScore"></p>
+    </div>
+  </section>
+
+  <div class="next-card">
+    <div class="n-emoji" aria-hidden="true">🛠️</div>
+    <div>
+      <h2>明日は Day 7：SageMaker Data Wrangler と Feature Store</h2>
+      <p>今日学んだ前処理を、実際にどのツールでどう行うか。特徴量の作り方と管理の仕組みがテーマです。</p>
+    </div>
+    <span class="day7">DAY 7 →</span>
+  </div>
+
+  <footer>
+    <p>MLA毎日解説 ― Day 6 ｜ 特徴量エンジニアリングの基礎（スケーリング、エンコーディング、欠損・外れ値）</p>
+  </footer>
+
+</div>
+
+<script>
+(function(){
+  var phases = [
+    {
+      title: "スケーリング",
+      en: "SCALING",
+      desc: "特徴量ごとにバラバラな数値の尺度（スケール）をそろえる処理です。年収は数百万円単位、年齢は数十単位——この差を放置すると、モデルが「大きな数字の特徴量」ばかりを重視してしまいます。",
+      feats: [
+        { name: "Min-Max正規化", en: "MinMaxScaler", text: "最小値を 0、最大値を 1 として、すべての値を 0〜1 の範囲に収める方法。範囲をきっちりそろえたいときに使いますが、外れ値があると全体が潰れてしまう弱点があります。" },
+        { name: "標準化（Zスコア）", en: "StandardScaler", text: "平均 0・標準偏差 1 になるよう変換する方法。範囲は固定されませんが、外れ値の影響を受けにくく、多くのアルゴリズムで標準的な選択肢です。" },
+        { name: "効くモデル・不要なモデル", en: "When It Matters", text: "k-NN や SVM などの距離ベース、線形回帰やニューラルネットなどの勾配ベースのモデルでは必須級。一方、決定木系は値の順序だけで分岐するため基本的に不要です。" }
+      ],
+      tip: "試験ヒント：「年収と年齢のように桁の違う特徴量がある」→ スケーリングを検討。「決定木系モデル」なら不要、という組み合わせで問われます。",
+      diagram: true
+    },
+    {
+      title: "エンコーディング",
+      en: "ENCODING",
+      desc: "モデルは基本的に数値しか扱えないため、「東京」「大阪」のようなカテゴリ（文字列）を数値に変換する処理です。カテゴリに順序があるかどうかで、使う手法が変わります。",
+      feats: [
+        { name: "One-Hotエンコーディング", en: "One-Hot Encoding", text: "カテゴリごとに 0/1 の列を作る方法。順序のない名義変数（都道府県、血液型など）の標準解で、モデルが余計な順序を誤解しません。" },
+        { name: "順序エンコーディング", en: "Ordinal Encoding", text: "満足度「低・中・高」を 0・1・2 のように、本来の順序を保ったまま数値化する方法。順序変数に使います。" },
+        { name: "ラベルエンコーディングの落とし穴", en: "Label Encoding Caution", text: "名義変数に通し番号を振ると、モデルが番号の大小を「順序や重要度」と誤解する恐れがあります。種類が多すぎる高カーディナリティ変数は、One-Hotだと列が爆発する点にも注意が必要です。" }
+      ],
+      tip: "試験ヒント：「順序のないカテゴリ」→ One-Hot、「順序のあるカテゴリ」→ 順序エンコーディング。この対応がそのまま選択肢に出ます。"
+    },
+    {
+      title: "欠損値の処理",
+      en: "MISSING VALUES",
+      desc: "データに空欄（欠損）があると、多くのモデルはそのまま学習できません。行ごと捨てるか、何らかの値で埋めるか——欠損の量と性質によって方針を選びます。",
+      feats: [
+        { name: "削除", en: "Deletion", text: "欠損を含む行（または列）を削除する方法。欠損がごく一部ならシンプルで有効ですが、欠損が多いと使えるデータが大きく減ってしまいます。" },
+        { name: "統計量での補完", en: "Imputation", text: "数値は平均値や中央値、カテゴリは最頻値で埋めるのが基本。分布が偏っている（外れ値が多い）場合は、平均より中央値の方が影響を受けにくく無難です。" },
+        { name: "補完は学習データだけで決める", en: "No Leakage", text: "補完に使う平均値・中央値・最頻値は、学習データからだけ計算します。テストデータを含めて計算すると情報が漏れるデータリーケージになり、評価が水増しされます。" }
+      ],
+      tip: "試験ヒント：「評価精度が不自然に高い」「本番で精度が落ちた」というシナリオでは、リーケージ（テスト情報の混入）を疑うのが定石です。",
+      warn: "注意：補完値を決める統計量は、必ず学習データのみから算出すること。検証・テストデータには、学習データで決めた値をそのまま適用します。"
+    },
+    {
+      title: "外れ値の処理",
+      en: "OUTLIERS",
+      desc: "他のデータから飛び抜けて離れた値が外れ値です。入力ミスのこともあれば、本物の異常（不正検知など）のこともあるため、まず「検出」して「どう扱うか」を決めます。",
+      feats: [
+        { name: "検出：IQR と Zスコア", en: "Detection", text: "IQR（四分位範囲）法は、第1四分位数と第3四分位数から「通常の範囲」を決めて外れた値を検出。Zスコアは平均から標準偏差の何倍離れているかで判定します。" },
+        { name: "対処：クリッピングと対数変換", en: "Treatment", text: "クリッピングは、範囲外の値を上限・下限の値に丸める方法。対数変換は、桁の大きな値の分布を圧縮して偏りを和らげます。単純な削除はデータが減る点に注意です。" },
+        { name: "決定木系は比較的頑健", en: "Tree Robustness", text: "決定木系のモデルは値の順序に基づく分岐で判断するため、外れ値があっても影響を受けにくい性質があります。線形モデルなどでは影響が大きいため、対処の優先度が上がります。" }
+      ],
+      tip: "試験ヒント：「外れ値に強いモデルは？」と聞かれたら決定木系。逆に平均値補完や Min-Max 正規化は外れ値に弱い、という対比も頻出です。"
+    }
+  ];
+
+  var panel = document.getElementById('phasePanel');
+  var tabs = Array.prototype.slice.call(document.querySelectorAll('.flow-step'));
+
+  function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
+
+  var diagramHtml =
+    '<div class="diagram" role="img" aria-label="図解：スケーリング前は年収の値の幅が年齢を圧倒し、標準化後は両者の効き方がそろう">' +
+      '<h4>📊 図解：なぜスケールをそろえるのか</h4>' +
+      '<p class="d-sub">2つの特徴量の「値の大きさ」を比べたイメージです。距離の計算では、値の幅が大きい特徴量が結果を支配します。</p>' +
+      '<div class="bar-row"><span class="b-label">年収（変換前）</span><span class="bar-track"><span class="bar-fill" style="display:block;width:100%"></span></span><span class="b-val">〜800万円</span></div>' +
+      '<div class="bar-row"><span class="b-label">年齢（変換前）</span><span class="bar-track"><span class="bar-fill" style="display:block;width:2%"></span></span><span class="b-val">〜80歳</span></div>' +
+      '<div class="bar-row"><span class="b-label">年収（標準化後）</span><span class="bar-track"><span class="bar-fill teal" style="display:block;width:52%"></span></span><span class="b-val">平均0・分散1</span></div>' +
+      '<div class="bar-row"><span class="b-label">年齢（標準化後）</span><span class="bar-track"><span class="bar-fill teal" style="display:block;width:52%"></span></span><span class="b-val">平均0・分散1</span></div>' +
+      '<p class="d-note">変換前は年齢の差が年収の差に埋もれてしまいます。<b>標準化・正規化で尺度をそろえる</b>ことで、両方の特徴量が公平に効くようになります。</p>' +
+    '</div>';
+
+  function renderPhase(i){
+    var p = phases[i];
+    var featsHtml = p.feats.map(function(f){
+      return '<div class="feat"><p class="fname"><span class="mono">' + esc(f.en) + '</span>' + esc(f.name) + '</p><p>' + esc(f.text) + '</p></div>';
+    }).join('');
+    var html =
+      '<h3>' + esc(p.title) + '<span class="en">' + esc(p.en) + '</span></h3>' +
+      '<p class="phase-desc">' + esc(p.desc) + '</p>' +
+      '<div class="feat-list">' + featsHtml + '</div>' +
+      (p.diagram ? diagramHtml : '') +
+      '<p class="phase-tip"><b>🎯 </b>' + esc(p.tip) + '</p>' +
+      (p.warn ? '<p class="phase-warn"><b>⚠️ </b>' + esc(p.warn) + '</p>' : '');
+    panel.innerHTML = html;
+    tabs.forEach(function(t, idx){
+      var on = idx === i;
+      t.classList.toggle('active', on);
+      t.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+  }
+
+  tabs.forEach(function(t){
+    t.addEventListener('click', function(){ renderPhase(parseInt(t.getAttribute('data-phase'), 10)); });
+  });
+  renderPhase(0);
+
+  /* quiz */
+  var totalQ = document.querySelectorAll('.quiz-block').length;
+  var answered = {};
+  var correctCount = 0;
+
+  var explanations = [
+    { ok: "正解！ <b>大きいスケールの特徴量が距離を支配してしまう</b>のが問題です。年収（数百万円）と年齢（数十）では、距離計算で年収の差ばかりが効いてしまいます。そのため、標準化や正規化でスケールをそろえる必要があります。",
+      ng: "残念、正解は <b>B：大きいスケールの特徴量が距離を支配してしまう</b> です。年収（数百万円）と年齢（数十）を比べると、距離はほぼ年収だけで決まってしまいます。だからこそ標準化・正規化が必要になります。" },
+    { ok: "正解！ 補完に使う平均値は <b>学習データのみ</b> から計算します。テストデータを含めて計算すると、テストの情報が学習に漏れるデータリーケージになってしまいます。",
+      ng: "残念、正解は <b>C：学習データのみ</b> です。全体で平均を計算すると、テストデータの情報が学習側に漏れるデータリーケージが発生します。学習データで決めた値を、テストデータにそのまま適用するのが原則です。" },
+    { ok: "正解！ 順序のない名義変数は <b>One-Hotエンコーディング</b> が基本です。カテゴリごとに 0/1 の列を作るため、モデルが存在しない順序を誤解しません。",
+      ng: "残念、正解は <b>A：One-Hotエンコーディング</b> です。ラベルエンコーディングで番号を振ると、モデルが番号の大小を順序と誤解する恐れがあります。標準化は数値の尺度をそろえる処理で、カテゴリの変換には使いません。" }
+  ];
+
+  document.querySelectorAll('.quiz-block').forEach(function(block){
+    var qi = parseInt(block.getAttribute('data-quiz'), 10);
+    var feedback = block.querySelector('.feedback');
+    block.querySelectorAll('.choice').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        if (answered[qi]) return;
+        answered[qi] = true;
+        var isCorrect = btn.getAttribute('data-correct') === 'true';
+        if (isCorrect) correctCount++;
+        block.querySelectorAll('.choice').forEach(function(b){
+          b.disabled = true;
+          if (b.getAttribute('data-correct') === 'true') b.classList.add('correct');
+        });
+        if (!isCorrect) btn.classList.add('wrong');
+        feedback.innerHTML = (isCorrect ? '⭕ ' : '❌ ') + (isCorrect ? explanations[qi].ok : explanations[qi].ng);
+        feedback.classList.add('show', isCorrect ? 'ok' : 'ng');
+        updateScore();
+      });
+    });
+  });
+
+  function updateScore(){
+    var done = Object.keys(answered).length;
+    var scoreEl = document.getElementById('quizScore');
+    if (done === totalQ) {
+      scoreEl.innerHTML = correctCount === totalQ
+        ? '🎉 結果：<span class="big">' + correctCount + ' / ' + totalQ + ' 問正解</span> ― 完璧です！スケーリング、エンコーディング、欠損・外れ値の要点がしっかり押さえられています。'
+        : '結果：<span class="big">' + correctCount + ' / ' + totalQ + ' 問正解</span> ― 間違えたところは、上の「比較表」と「間違えやすい点」を見直してみてください。';
+      scoreEl.classList.add('show');
+    }
+  }
+})();
+</script>
+</body>
+</html>
