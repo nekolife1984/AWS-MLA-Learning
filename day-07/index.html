@@ -1,0 +1,779 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="light dark" />
+<link rel="icon" href="data:," />
+<title>MLA解説 Day 7 — SageMaker Data Wrangler と Feature Store</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;800;900&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f6f7f9;
+    --surface:#ffffff;
+    --surface-2:#fff7ed;
+    --surface-3:#f1f5f9;
+    --ink:#0f172a;
+    --ink-2:#334155;
+    --muted:#64748b;
+    --line:#e2e8f0;
+    --line-strong:#cbd5e1;
+    --orange:#ea580c;
+    --orange-bright:#ff9900;
+    --orange-soft:#ffedd5;
+    --teal:#0f766e;
+    --teal-soft:#ccfbf1;
+    --navy:#13233f;
+    --navy-2:#1e3a5f;
+    --red:#b91c1c;
+    --red-soft:#fee2e2;
+    --green:#15803d;
+    --green-soft:#dcfce7;
+    --shadow:0 10px 30px rgba(15,23,42,.08);
+    --shadow-sm:0 2px 10px rgba(15,23,42,.06);
+    --radius:18px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0b1220;
+      --surface:#111c30;
+      --surface-2:#1c1a12;
+      --surface-3:#16233c;
+      --ink:#f1f5f9;
+      --ink-2:#cbd5e1;
+      --muted:#94a3b8;
+      --line:#24344f;
+      --line-strong:#334155;
+      --orange:#fb923c;
+      --orange-bright:#ff9900;
+      --orange-soft:#431407;
+      --teal:#2dd4bf;
+      --teal-soft:#042f2e;
+      --navy:#0f172a;
+      --navy-2:#1e293b;
+      --red:#fca5a5;
+      --red-soft:#450a0a;
+      --green:#86efac;
+      --green-soft:#052e16;
+      --shadow:0 10px 30px rgba(0,0,0,.35);
+      --shadow-sm:0 2px 10px rgba(0,0,0,.3);
+    }
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:"Noto Sans JP", system-ui, -apple-system, "Hiragino Kaku Gothic ProN", sans-serif;
+    line-height:1.75;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:var(--orange)}
+  .wrap{max-width:920px;margin:0 auto;padding:20px 18px 56px}
+
+  /* ---------- top meta ---------- */
+  .meta-row{
+    display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:6px 0 18px;
+  }
+  .pill{
+    display:inline-flex;align-items:center;gap:6px;
+    font-size:12.5px;font-weight:700;letter-spacing:.02em;
+    padding:5px 11px;border-radius:999px;border:1px solid var(--line);
+    background:var(--surface);color:var(--ink-2);
+  }
+  .pill.day{background:var(--navy);color:#fff;border-color:var(--navy)}
+  @media (prefers-color-scheme: dark){ .pill.day{background:var(--orange-bright);color:#111827;border-color:var(--orange-bright)} }
+  .pill .dot{width:7px;height:7px;border-radius:50%;background:var(--orange-bright);flex:none}
+  .mono{font-family:"IBM Plex Mono", ui-monospace, monospace}
+
+  /* ---------- hero ---------- */
+  .hero{
+    background:var(--navy);
+    color:#fff;
+    border-radius:24px;
+    padding:30px 28px 26px;
+    position:relative;
+    overflow:hidden;
+    box-shadow:var(--shadow);
+  }
+  .hero::after{
+    content:"";position:absolute;right:-70px;top:-70px;width:260px;height:260px;border-radius:50%;
+    border:44px solid rgba(255,153,0,.22);pointer-events:none;
+  }
+  .hero::before{
+    content:"";position:absolute;right:54px;bottom:-90px;width:160px;height:160px;border-radius:50%;
+    border:28px solid rgba(45,212,191,.14);pointer-events:none;
+  }
+  .hero-kicker{font-size:13px;font-weight:800;letter-spacing:.14em;color:#ffb25e;text-transform:uppercase;margin:0 0 8px;position:relative;z-index:1}
+  .hero h1{font-size:32px;line-height:1.35;font-weight:900;margin:0 0 12px;position:relative;z-index:1;letter-spacing:.01em}
+  .hero h1 .hl{color:var(--orange-bright)}
+  .hero p.lead{margin:0;color:#dbe6f3;font-size:15.5px;max-width:640px;position:relative;z-index:1}
+  .hero-tags{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px;position:relative;z-index:1}
+  .hero-tags span{font-size:12.5px;font-weight:700;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);color:#e2e8f0;padding:4px 10px;border-radius:999px}
+
+  .oneline{
+    margin-top:16px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+    padding:18px 20px;box-shadow:var(--shadow-sm);display:flex;gap:14px;align-items:flex-start;
+  }
+  .oneline .icon{
+    flex:none;width:42px;height:42px;border-radius:12px;background:var(--orange-soft);display:grid;place-items:center;font-size:21px;
+  }
+  .oneline h2{font-size:13px;letter-spacing:.08em;color:var(--orange);margin:0 0 4px;font-weight:800}
+  .oneline p{margin:0;font-size:16.5px;font-weight:700;line-height:1.6;color:var(--ink)}
+  .oneline p b{color:var(--orange)}
+
+  /* ---------- sections ---------- */
+  section{margin-top:36px}
+  .sec-head{display:flex;align-items:baseline;gap:12px;margin-bottom:6px;flex-wrap:wrap}
+  .sec-num{
+    font-family:"IBM Plex Mono",monospace;font-size:13px;font-weight:600;color:#fff;background:var(--orange);
+    width:28px;height:28px;border-radius:8px;display:inline-grid;place-items:center;flex:none;align-self:center;
+  }
+  .sec-head h2{font-size:22px;font-weight:900;margin:0;line-height:1.3}
+  .sec-sub{color:var(--muted);font-size:14px;margin:2px 0 16px 40px}
+  @media (max-width:560px){ .sec-sub{margin-left:0} }
+
+  /* ---------- pipeline diagram ---------- */
+  .pipe{display:grid;grid-template-columns:1fr auto 1.35fr auto 1.35fr auto 1fr;align-items:stretch;gap:6px;margin:14px 0 18px}
+  .pipe-node{
+    background:var(--surface);border:1.5px solid var(--line);border-radius:16px;padding:14px 12px;text-align:center;
+    display:flex;flex-direction:column;justify-content:center;gap:2px;
+  }
+  .pipe-node.hot{border-color:var(--orange);background:var(--surface-2)}
+  .pipe-node .p-emoji{font-size:24px;line-height:1.2}
+  .pipe-node .p-name{font-weight:800;font-size:14.5px;line-height:1.45}
+  .pipe-node .p-sub{font-size:11.5px;color:var(--muted);line-height:1.5}
+  .pipe-arrow{display:grid;place-items:center;color:var(--line-strong);font-size:18px;font-weight:900;pointer-events:none}
+  @media (max-width:640px){
+    .pipe{grid-template-columns:1fr;gap:8px}
+    .pipe-arrow{transform:rotate(90deg);padding:0;height:18px}
+  }
+
+  /* ---------- phase tabs ---------- */
+  .flow{display:grid;grid-template-columns:1fr auto 1fr auto 1fr auto 1fr;align-items:stretch;gap:6px;margin:14px 0 18px}
+  .flow-step{
+    background:var(--surface);border:1.5px solid var(--line);border-radius:16px;padding:14px 12px;text-align:center;cursor:pointer;
+    transition:border-color .15s, background .15s, transform .15s;font-family:inherit;color:var(--ink);
+  }
+  .flow-step:hover{transform:translateY(-2px)}
+  .flow-step:focus-visible{outline:3px solid var(--orange-bright);outline-offset:2px}
+  .flow-step.active{border-color:var(--orange);background:var(--surface-2)}
+  .flow-step .step-emoji{font-size:24px;display:block;line-height:1.2}
+  .flow-step .step-no{font-family:"IBM Plex Mono",monospace;font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.08em}
+  .flow-step .step-name{font-weight:800;font-size:15px;display:block;margin-top:2px}
+  .flow-step .step-en{font-size:11.5px;color:var(--muted);display:block}
+  .flow-arrow{display:grid;place-items:center;color:var(--line-strong);font-size:18px;font-weight:900;pointer-events:none}
+  @media (max-width:640px){
+    .flow{grid-template-columns:1fr;gap:8px}
+    .flow-arrow{transform:rotate(90deg);padding:0;height:18px}
+    .flow-step{display:flex;align-items:center;gap:12px;text-align:left;padding:12px 14px}
+    .flow-step .step-emoji{font-size:22px}
+    .flow-step .step-meta{text-align:left}
+  }
+  @media (prefers-reduced-motion: reduce){
+    .flow-step{transition:none}
+    .flow-step:hover{transform:none}
+    html{scroll-behavior:auto}
+  }
+  .phase-panel{
+    background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:22px;box-shadow:var(--shadow-sm);
+  }
+  .phase-panel h3{margin:0 0 4px;font-size:19px;font-weight:900}
+  .phase-panel h3 .en{font-size:13px;color:var(--muted);font-weight:700;margin-left:8px;letter-spacing:.04em}
+  .phase-panel .phase-desc{color:var(--ink-2);font-size:14.5px;margin:0 0 16px}
+  .feat-list{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  @media (max-width:700px){ .feat-list{grid-template-columns:1fr} }
+  .feat{background:var(--surface-3);border-radius:14px;padding:14px 15px}
+  .feat .fname{font-weight:800;font-size:14.5px;margin:0 0 4px}
+  .feat .fname .mono{font-size:13px;color:var(--orange);display:block;font-weight:600}
+  .feat p{margin:0;font-size:13.5px;color:var(--ink-2);line-height:1.65}
+  .phase-tip{margin-top:14px;font-size:13.5px;background:var(--teal-soft);color:var(--ink);border-radius:12px;padding:11px 14px}
+  .phase-tip b{color:var(--teal)}
+  .phase-warn{margin-top:10px;font-size:13.5px;background:var(--red-soft);color:var(--ink);border-radius:12px;padding:11px 14px}
+  .phase-warn b{color:var(--red)}
+
+  /* ---------- timeline diagram ---------- */
+  .diagram{
+    margin-top:16px;background:var(--surface-3);border-radius:14px;padding:16px 18px;
+  }
+  .diagram h4{margin:0 0 4px;font-size:14px;font-weight:800}
+  .diagram p.d-sub{margin:0 0 12px;font-size:13px;color:var(--ink-2)}
+  .tl{position:relative;margin:6px 0 2px;padding-left:22px}
+  .tl::before{content:"";position:absolute;left:6px;top:8px;bottom:8px;width:3px;border-radius:2px;background:var(--line-strong)}
+  .tl-row{position:relative;display:flex;gap:10px;align-items:baseline;margin:10px 0;flex-wrap:wrap}
+  .tl-row::before{content:"";position:absolute;left:-21px;top:7px;width:11px;height:11px;border-radius:50%;background:var(--surface);border:3px solid var(--muted)}
+  .tl-row.now::before{border-color:var(--orange)}
+  .tl-row.future::before{border-color:var(--red)}
+  .tl-when{font-family:"IBM Plex Mono",monospace;font-size:12.5px;font-weight:600;color:var(--muted);min-width:118px}
+  .tl-what{font-size:13.5px;color:var(--ink-2)}
+  .tl-what b{color:var(--ink)}
+  .tl-tag{font-size:11px;font-weight:800;padding:2px 8px;border-radius:999px;background:var(--green-soft);color:var(--green)}
+  .tl-tag.bad{background:var(--red-soft);color:var(--red)}
+  .diagram .d-note{margin:10px 0 0;font-size:13px;color:var(--ink-2)}
+  .diagram .d-note b{color:var(--orange)}
+
+  /* ---------- tables ---------- */
+  .tbl-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow-sm);margin-bottom:16px}
+  .tbl-card > h3{margin:0;padding:16px 20px 0;font-size:16.5px;font-weight:900}
+  .tbl-card > p.tbl-sub{margin:2px 0 0;padding:0 20px;font-size:13.5px;color:var(--muted)}
+  .tbl-scroll{padding:14px 20px 18px}
+  table.cmp{width:100%;border-collapse:collapse;font-size:14px}
+  table.cmp th,table.cmp td{padding:10px 12px;text-align:left;vertical-align:top;border-bottom:1px solid var(--line);line-height:1.6}
+  table.cmp thead th{background:var(--surface-3);font-weight:800;font-size:13.5px;border-bottom:2px solid var(--line-strong)}
+  table.cmp thead th.hl-col{color:var(--orange)}
+  table.cmp tbody th{font-weight:800;white-space:nowrap;color:var(--ink)}
+  table.cmp td{color:var(--ink-2)}
+  table.cmp tr:last-child th,table.cmp tr:last-child td{border-bottom:none}
+  table.cmp code{
+    font-family:"IBM Plex Mono",monospace;font-size:.88em;background:var(--surface-3);border:1px solid var(--line);
+    padding:1px 6px;border-radius:6px;color:var(--orange);font-weight:600;white-space:nowrap;
+  }
+  @media (max-width:640px){
+    table.cmp,table.cmp thead,table.cmp tbody,table.cmp tr,table.cmp th,table.cmp td{display:block;width:100%}
+    table.cmp thead{display:none}
+    table.cmp tr{border:1px solid var(--line);border-radius:12px;margin-bottom:12px;padding:6px 4px;background:var(--surface)}
+    table.cmp tbody th{border-bottom:none;padding-bottom:2px;font-size:15px}
+    table.cmp td{border-bottom:none;padding:4px 12px 8px}
+    table.cmp td::before{content:attr(data-th);display:block;font-size:11.5px;font-weight:800;letter-spacing:.06em;color:var(--orange);margin-bottom:1px}
+    table.cmp tr:last-child th,table.cmp tr:last-child td{border-bottom:none}
+  }
+
+  /* ---------- exam points ---------- */
+  .exam-list{display:flex;flex-direction:column;gap:12px}
+  .exam-item{
+    display:flex;gap:14px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;box-shadow:var(--shadow-sm);
+  }
+  .exam-item .badge{
+    flex:none;width:34px;height:34px;border-radius:50%;background:var(--navy);color:#fff;font-weight:800;font-size:15px;display:grid;place-items:center;margin-top:2px;
+  }
+  @media (prefers-color-scheme: dark){ .exam-item .badge{background:var(--orange-bright);color:#111827} }
+  .exam-item h3{margin:0 0 4px;font-size:16px;font-weight:800}
+  .exam-item p{margin:0;font-size:14.5px;color:var(--ink-2)}
+  .exam-item code,.compare code,.phase-panel code{
+    font-family:"IBM Plex Mono",monospace;font-size:.88em;background:var(--surface-3);border:1px solid var(--line);
+    padding:1px 6px;border-radius:6px;color:var(--orange);font-weight:600;white-space:nowrap;
+  }
+
+  /* ---------- compare (pitfalls) ---------- */
+  .compare{display:flex;flex-direction:column;gap:14px}
+  .compare-row{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow-sm)}
+  .compare-vs{display:grid;grid-template-columns:1fr auto 1fr}
+  @media (max-width:640px){ .compare-vs{grid-template-columns:1fr} .vs-badge{margin:0 auto} }
+  .compare-cell{padding:18px 20px}
+  .compare-cell.a{background:var(--red-soft)}
+  .compare-cell.b{background:var(--green-soft)}
+  .compare-cell h3{margin:0 0 5px;font-size:16.5px;font-weight:900}
+  .compare-cell p{margin:0;font-size:14px;color:var(--ink-2)}
+  .vs-badge{align-self:center;width:38px;height:38px;border-radius:50%;background:var(--ink);color:var(--bg);font-weight:900;font-size:12px;display:grid;place-items:center;letter-spacing:.05em;z-index:1;margin:0 -6px}
+  .compare-note{padding:12px 20px;border-top:1px dashed var(--line-strong);font-size:13.5px;color:var(--ink-2);background:var(--surface)}
+  .compare-note b{color:var(--orange)}
+
+  /* ---------- quiz ---------- */
+  .quiz{
+    background:var(--navy);color:#fff;border-radius:24px;padding:26px 24px;box-shadow:var(--shadow);position:relative;overflow:hidden;
+  }
+  .quiz::after{content:"?";position:absolute;right:14px;top:-28px;font-size:150px;font-weight:900;color:rgba(255,255,255,.06);line-height:1;pointer-events:none}
+  .quiz .q-label{font-size:12.5px;font-weight:800;letter-spacing:.12em;color:#ffb25e;margin:0 0 8px}
+  .quiz h2{font-size:20px;font-weight:900;margin:0 0 6px;line-height:1.45}
+  .quiz .q-sub{color:#cbd5e1;font-size:13.5px;margin:0 0 18px}
+  .quiz-block{margin-bottom:22px;position:relative;z-index:1}
+  .quiz-block:last-of-type{margin-bottom:0}
+  .quiz-q{font-weight:700;font-size:15.5px;margin:0 0 12px;line-height:1.65}
+  .quiz-q .qno{color:var(--orange-bright);font-family:"IBM Plex Mono",monospace;margin-right:6px}
+  .choices{display:flex;flex-direction:column;gap:9px}
+  .choice{
+    text-align:left;font-family:inherit;font-size:14.5px;font-weight:600;color:#e2e8f0;
+    background:rgba(255,255,255,.07);border:1.5px solid rgba(255,255,255,.22);border-radius:12px;
+    padding:12px 15px;cursor:pointer;display:flex;gap:10px;align-items:flex-start;line-height:1.55;
+  }
+  .choice:hover{border-color:var(--orange-bright)}
+  .choice:focus-visible{outline:3px solid var(--orange-bright);outline-offset:2px}
+  .choice .letter{flex:none;width:24px;height:24px;border-radius:7px;background:rgba(255,255,255,.14);display:grid;place-items:center;font-size:13px;font-weight:800;margin-top:1px}
+  .choice.correct{border-color:#4ade80;background:rgba(74,222,128,.16);color:#fff}
+  .choice.correct .letter{background:#22c55e;color:#fff}
+  .choice.wrong{border-color:#f87171;background:rgba(248,113,113,.14)}
+  .choice.wrong .letter{background:#dc2626;color:#fff}
+  .choice:disabled{cursor:default;opacity:.92}
+  .feedback{display:none;margin-top:12px;border-radius:12px;padding:12px 15px;font-size:14px;line-height:1.65}
+  .feedback.show{display:block}
+  .feedback.ok{background:rgba(74,222,128,.15);border:1px solid rgba(74,222,128,.4)}
+  .feedback.ng{background:rgba(248,113,113,.13);border:1px solid rgba(248,113,113,.4)}
+  .feedback b{color:#fff}
+  .quiz-score{margin-top:18px;font-size:14px;font-weight:700;color:#e2e8f0;display:none;position:relative;z-index:1}
+  .quiz-score.show{display:block}
+  .quiz-score .big{color:var(--orange-bright);font-size:18px}
+
+  /* ---------- next / footer ---------- */
+  .next-card{
+    margin-top:36px;display:flex;gap:16px;align-items:center;background:var(--surface);border:1.5px dashed var(--line-strong);
+    border-radius:var(--radius);padding:20px 22px;
+  }
+  .next-card .n-emoji{font-size:32px;flex:none}
+  .next-card h2{margin:0 0 2px;font-size:16.5px;font-weight:900}
+  .next-card p{margin:0;font-size:14px;color:var(--muted)}
+  .next-card .day8{margin-left:auto;flex:none;font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:13px;color:var(--orange);border:1px solid var(--orange);border-radius:999px;padding:5px 12px;white-space:nowrap}
+  @media (max-width:560px){ .next-card{flex-wrap:wrap} .next-card .day8{margin-left:0} }
+  footer{margin-top:28px;text-align:center;color:var(--muted);font-size:12.5px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="meta-row" aria-label="メタ情報">
+    <span class="pill day">DAY 7 / 84</span>
+    <span class="pill"><span class="dot"></span>AWS MLA-C01 対策</span>
+    <span class="pill">⏱ 読了目安 約6分</span>
+    <span class="pill mono">2026.11.02 MON</span>
+  </div>
+
+  <header class="hero">
+    <p class="hero-kicker">Machine Learning — Lesson 07</p>
+    <h1>特徴量を<span class="hl">作る</span>道具と、<span class="hl">しまう</span>場所<br>Data Wrangler と Feature Store</h1>
+    <p class="lead">Day 6 で学んだ前処理（スケーリングやエンコーディングなど）を、実際にどのツールでどう行うか。今日は「作る」SageMaker Data Wrangler と、「保存して使い回す」SageMaker Feature Store の2つがテーマです。</p>
+    <div class="hero-tags">
+      <span># Data Wrangler</span><span># Feature Store</span><span># フィーチャーグループ</span><span># ポイントインタイム</span>
+    </div>
+  </header>
+
+  <div class="oneline">
+    <div class="icon" aria-hidden="true">💡</div>
+    <div>
+      <h2>一言で言うと</h2>
+      <p><b>Data Wrangler は特徴量を作る「調理場」</b>、<b>Feature Store は作った特徴量をしまう「冷蔵庫」</b>です。調理の手順を一度決めれば再利用でき、冷蔵庫に入れた特徴量は学習にも推論にも同じものを使えます。</p>
+    </div>
+  </div>
+
+  <!-- 01 pipeline -->
+  <section aria-labelledby="sec1">
+    <div class="sec-head"><span class="sec-num">01</span><h2 id="sec1">全体の流れを図で見る</h2></div>
+    <p class="sec-sub">生データから学習・推論までの流れの中で、今日の2つのサービスがどこに位置するかを確認します。</p>
+
+    <div class="pipe" role="img" aria-label="図解：S3やAthenaなどのデータソースから Data Wrangler で特徴量を作り、Feature Store に保存して、学習と推論の両方で使う流れ">
+      <div class="pipe-node">
+        <span class="p-emoji" aria-hidden="true">🗄️</span>
+        <span class="p-name">データソース</span>
+        <span class="p-sub">S3 / Athena / Redshift / Snowflake など</span>
+      </div>
+      <span class="pipe-arrow" aria-hidden="true">›</span>
+      <div class="pipe-node hot">
+        <span class="p-emoji" aria-hidden="true">🧑‍🍳</span>
+        <span class="p-name">Data Wrangler</span>
+        <span class="p-sub">画面操作で変換・分析<br>特徴量を「作る」</span>
+      </div>
+      <span class="pipe-arrow" aria-hidden="true">›</span>
+      <div class="pipe-node hot">
+        <span class="p-emoji" aria-hidden="true">🧊</span>
+        <span class="p-name">Feature Store</span>
+        <span class="p-sub">オンライン／オフラインの2店舗<br>特徴量を「しまう・使い回す」</span>
+      </div>
+      <span class="pipe-arrow" aria-hidden="true">›</span>
+      <div class="pipe-node">
+        <span class="p-emoji" aria-hidden="true">🤖</span>
+        <span class="p-name">学習・推論</span>
+        <span class="p-sub">学習データ作成と<br>リアルタイム推論</span>
+      </div>
+    </div>
+    <p style="margin:0;font-size:14px;color:var(--ink-2)">ポイントは、<b>学習と推論でまったく同じ特徴量を使う</b>ことです。学習時と推論時で特徴量の作り方がずれると、オフラインでは高精度なのに本番で精度が落ちる「トレーニング／サービングスキュー」が起きます。Feature Store はこのズレを防ぐための仕組みです。</p>
+  </section>
+
+  <!-- 02 detail tabs -->
+  <section aria-labelledby="sec2">
+    <div class="sec-head"><span class="sec-num">02</span><h2 id="sec2">2つのサービスを深掘り</h2></div>
+    <p class="sec-sub">各ステップをタップすると、詳しい説明が切り替わります。</p>
+
+    <div class="flow" role="tablist" aria-label="Data Wrangler と Feature Store の詳細">
+      <button class="flow-step active" role="tab" aria-selected="true" data-phase="0" id="tab-0">
+        <span class="step-emoji" aria-hidden="true">🧑‍🍳</span>
+        <span class="step-meta"><span class="step-no">STEP 1</span><span class="step-name">取り込みと変換</span><span class="step-en">Data Wrangler</span></span>
+      </button>
+      <span class="flow-arrow" aria-hidden="true">›</span>
+      <button class="flow-step" role="tab" aria-selected="false" data-phase="1" id="tab-1">
+        <span class="step-emoji" aria-hidden="true">🔍</span>
+        <span class="step-meta"><span class="step-no">STEP 2</span><span class="step-name">分析と書き出し</span><span class="step-en">Insights &amp; Export</span></span>
+      </button>
+      <span class="flow-arrow" aria-hidden="true">›</span>
+      <button class="flow-step" role="tab" aria-selected="false" data-phase="2" id="tab-2">
+        <span class="step-emoji" aria-hidden="true">🧊</span>
+        <span class="step-meta"><span class="step-no">STEP 3</span><span class="step-name">特徴量の保管</span><span class="step-en">Feature Store</span></span>
+      </button>
+      <span class="flow-arrow" aria-hidden="true">›</span>
+      <button class="flow-step" role="tab" aria-selected="false" data-phase="3" id="tab-3">
+        <span class="step-emoji" aria-hidden="true">🕰️</span>
+        <span class="step-meta"><span class="step-no">STEP 4</span><span class="step-name">時点をそろえる</span><span class="step-en">Point-in-Time</span></span>
+      </button>
+    </div>
+
+    <div class="phase-panel" role="tabpanel" aria-live="polite" id="phasePanel">
+      <!-- JSで差し替え -->
+    </div>
+  </section>
+
+  <!-- 03 tables -->
+  <section aria-labelledby="sec3">
+    <div class="sec-head"><span class="sec-num">03</span><h2 id="sec3">比較表で整理する</h2></div>
+    <p class="sec-sub">試験で最も問われるのが「オンラインストアとオフラインストアの使い分け」と、「似た道具同士の違い」です。</p>
+
+    <div class="tbl-card">
+      <h3>Feature Store：オンラインストア vs オフラインストア</h3>
+      <p class="tbl-sub">同じ特徴量を、用途の違う2つの置き場に保存します。どちらを有効化するかはフィーチャーグループ作成時に選びます。</p>
+      <div class="tbl-scroll">
+        <table class="cmp">
+          <thead>
+            <tr><th scope="col">観点</th><th scope="col" class="hl-col">オンラインストア</th><th scope="col">オフラインストア</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">主な用途</th>
+              <td data-th="オンラインストア">リアルタイム推論での特徴量取得</td>
+              <td data-th="オフラインストア">学習データセットの作成、バッチ推論、探索的分析</td>
+            </tr>
+            <tr>
+              <th scope="row">保存先</th>
+              <td data-th="オンラインストア">低レイテンシなインメモリ／マネージドストア（最新値向け）</td>
+              <td data-th="オフラインストア">Amazon S3（アカウントのバケットに Parquet 形式で保存）</td>
+            </tr>
+            <tr>
+              <th scope="row">保持するデータ</th>
+              <td data-th="オンラインストア">各レコードの<b>最新値のみ</b></td>
+              <td data-th="オフラインストア"><b>全履歴</b>（過去の値もすべて残る）</td>
+            </tr>
+            <tr>
+              <th scope="row">レイテンシ</th>
+              <td data-th="オンラインストア">ミリ秒単位の低レイテンシ取得（<code>GetRecord</code> API）</td>
+              <td data-th="オフラインストア">Athena で SQL クエリする前提で、秒〜分単位</td>
+            </tr>
+            <tr>
+              <th scope="row">試験での合言葉</th>
+              <td data-th="オンラインストア">「リアルタイム」「低レイテンシ」「推論時に取得」</td>
+              <td data-th="オフラインストア">「学習データ作成」「履歴」「ポイントインタイム結合」</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="tbl-card">
+      <h3>Data Wrangler vs Glue DataBrew：似た道具の違い</h3>
+      <p class="tbl-sub">どちらも「画面操作でデータ準備」ができますが、想定するゴールが違います（Day 4 の復習も兼ねて）。</p>
+      <div class="tbl-scroll">
+        <table class="cmp">
+          <thead>
+            <tr><th scope="col">観点</th><th scope="col" class="hl-col">SageMaker Data Wrangler</th><th scope="col">AWS Glue DataBrew</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">位置づけ</th>
+              <td data-th="Data Wrangler">SageMaker Studio 内の、ML 向けデータ準備・特徴量エンジニアリングツール</td>
+              <td data-th="Glue DataBrew">Glue ファミリーの、分析・BI 向け汎用データ準備ツール</td>
+            </tr>
+            <tr>
+              <th scope="row">分析機能</th>
+              <td data-th="Data Wrangler">データインサイト、クイックモデル（特徴量重要度）、ターゲットリーケージ検出など ML 特化の分析</td>
+              <td data-th="Glue DataBrew">データプロファイル（統計・品質の概要）が中心</td>
+            </tr>
+            <tr>
+              <th scope="row">書き出し先</th>
+              <td data-th="Data Wrangler">Feature Store、SageMaker Pipelines、S3、Jupyter ノートブック（コード）</td>
+              <td data-th="Glue DataBrew">S3、Glue データカタログ経由の分析基盤など</td>
+            </tr>
+            <tr>
+              <th scope="row">選ぶ場面</th>
+              <td data-th="Data Wrangler">この後 SageMaker で学習・推論する前提の前処理</td>
+              <td data-th="Glue DataBrew">ML に限らない一般的な ETL・データ整形</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- 04 exam -->
+  <section aria-labelledby="sec4">
+    <div class="sec-head"><span class="sec-num">04</span><h2 id="sec4">試験で問われるポイント</h2></div>
+    <p class="sec-sub">MLA-C01 では「シナリオ → どの機能で解決するか」の形で問われます。キーワードと機能の対応を押さえましょう。</p>
+    <div class="exam-list">
+      <div class="exam-item">
+        <div class="badge">1</div>
+        <div>
+          <h3>「コードを書かずに前処理」→ Data Wrangler</h3>
+          <p>SageMaker Studio のビジュアル UI で、S3 / Athena / Redshift / Snowflake などからデータを取り込み、<b>300 以上の組み込み変換</b>を画面操作で組み立てます。手順はフロー（<code>.flow</code>）として保存され、そのままジョブ化・再利用できます。</p>
+        </div>
+      </div>
+      <div class="exam-item">
+        <div class="badge">2</div>
+        <div>
+          <h3>フローの書き出し先がそのまま出題範囲</h3>
+          <p>Data Wrangler のフローは、<b>Feature Store への取り込み</b>、<b>SageMaker Pipelines のステップ化</b>、<b>S3 への出力</b>、<b>Jupyter ノートブックへのコード書き出し</b>ができます。「前処理をパイプラインに組み込みたい」という要件は Pipelines へのエクスポートが答えになります。</p>
+        </div>
+      </div>
+      <div class="exam-item">
+        <div class="badge">3</div>
+        <div>
+          <h3>「学習と推論で同じ特徴量」→ Feature Store で一元管理</h3>
+          <p>特徴量をフィーチャーグループとして登録し、チームやプロジェクトをまたいで<b>検索・再利用</b>できるのが Feature Store の役割です。学習時と推論時で別々に特徴量を作る構成は、トレーニング／サービングスキューの原因として誤答側に置かれがちです。</p>
+        </div>
+      </div>
+      <div class="exam-item">
+        <div class="badge">4</div>
+        <div>
+          <h3>「未来の情報が混ざるのを防ぐ」→ ポイントインタイム結合</h3>
+          <p>オフラインストアがイベント時刻つきで全履歴を保持しているため、学習データ作成時に「その時点で知り得た値だけ」を結合できます。これにより、予測時点より後の情報が学習に混入する<b>データリーケージ</b>を防げます（Day 6 のリーケージの話の実践編です）。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 05 pitfalls -->
+  <section aria-labelledby="sec5">
+    <div class="sec-head"><span class="sec-num">05</span><h2 id="sec5">間違えやすい点</h2></div>
+    <p class="sec-sub">選択肢で迷いやすい組み合わせを、「やりがちな誤り」と「正しい選択」の対比で確認します。</p>
+    <div class="compare">
+      <div class="compare-row">
+        <div class="compare-vs">
+          <div class="compare-cell a">
+            <h3>❌ リアルタイム推論でオフラインストアを参照</h3>
+            <p>推論のたびに S3 のオフラインストアへ Athena クエリを投げる。履歴検索には向くが、ミリ秒応答が必要な推論ではレイテンシが大きすぎる。</p>
+          </div>
+          <div class="vs-badge" aria-hidden="true">VS</div>
+          <div class="compare-cell b">
+            <h3>⭕ 推論時はオンラインストアから取得</h3>
+            <p>オンラインストアは最新値を低レイテンシで返す専用設計。<code>GetRecord</code> API で即座に特徴量を取得して推論に使う。</p>
+          </div>
+        </div>
+        <div class="compare-note">🔑 見分け方：問題文に<b>「リアルタイム」「低レイテンシ」</b>があればオンライン、<b>「学習データ」「履歴」</b>があればオフラインです。</div>
+      </div>
+
+      <div class="compare-row">
+        <div class="compare-vs">
+          <div class="compare-cell a">
+            <h3>❌ 学習データに「今の最新値」を結合</h3>
+            <p>過去の取引データに、現在の顧客ステータスをそのまま結合する。予測時点では知り得なかった未来の情報が混入し、評価だけが不自然に良くなる。</p>
+          </div>
+          <div class="vs-badge" aria-hidden="true">VS</div>
+          <div class="compare-cell b">
+            <h3>⭕ ポイントインタイム結合で時点をそろえる</h3>
+            <p>イベント時刻を使って「その取引の時点での値」をオフラインストアから取り出す。学習データが本番の条件と一致し、リーケージを防げる。</p>
+          </div>
+        </div>
+        <div class="compare-note">🔑 合言葉：学習データは「<b>予測する瞬間に見えていた世界</b>」だけで作ること。これがポイントインタイムの考え方です。</div>
+      </div>
+
+      <div class="compare-row">
+        <div class="compare-vs">
+          <div class="compare-cell a">
+            <h3>❌ チームごとに特徴量をバラバラに作る</h3>
+            <p>「過去30日の購入金額」をプロジェクトごとに別実装する。定義が微妙にずれ、モデルの再現性も比較可能性も失われる。</p>
+          </div>
+          <div class="vs-badge" aria-hidden="true">VS</div>
+          <div class="compare-cell b">
+            <h3>⭕ フィーチャーグループに登録して共有</h3>
+            <p>Feature Store に登録すれば、定義は1か所に統一され、誰でも同じ特徴量を検索して再利用できる。</p>
+          </div>
+        </div>
+        <div class="compare-note">🔑 Feature Store は単なる保存場所ではなく、<b>特徴量の「定義の置き場」</b>です。再利用と一貫性がキーワードになります。</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- quiz -->
+  <section aria-labelledby="quizTitle">
+    <div class="quiz">
+      <p class="q-label">CHECK QUIZ — 確認クイズ</p>
+      <h2 id="quizTitle">今日の理解度チェック（全3問）</h2>
+      <p class="q-sub">選択肢をタップすると、その場で答え合わせができます。</p>
+
+      <div class="quiz-block" data-quiz="0">
+        <p class="quiz-q"><span class="qno">Q1.</span>不正検知モデルのリアルタイム推論で、ミリ秒単位の応答で特徴量を取得したい。Feature Store のどちらのストアを使うべき？</p>
+        <div class="choices">
+          <button class="choice" data-correct="false"><span class="letter">A</span><span>オフラインストア（Athena でクエリする）</span></button>
+          <button class="choice" data-correct="true"><span class="letter">B</span><span>オンラインストア（GetRecord API で取得する）</span></button>
+          <button class="choice" data-correct="false"><span class="letter">C</span><span>どちらでも同じ速度で取得できる</span></button>
+        </div>
+        <div class="feedback" role="status"></div>
+      </div>
+
+      <div class="quiz-block" data-quiz="1">
+        <p class="quiz-q"><span class="qno">Q2.</span>学習データセットを作るとき、「予測時点より後の情報」が混入するデータリーケージを防ぐ仕組みは？</p>
+        <div class="choices">
+          <button class="choice" data-correct="false"><span class="letter">A</span><span>クイックモデルによる特徴量重要度の算出</span></button>
+          <button class="choice" data-correct="false"><span class="letter">B</span><span>オンラインストアへの最新値の上書き</span></button>
+          <button class="choice" data-correct="true"><span class="letter">C</span><span>オフラインストアでのポイントインタイム結合</span></button>
+        </div>
+        <div class="feedback" role="status"></div>
+      </div>
+
+      <div class="quiz-block" data-quiz="2">
+        <p class="quiz-q"><span class="qno">Q3.</span>Data Wrangler で作った前処理フローについて、正しい説明はどれ？</p>
+        <div class="choices">
+          <button class="choice" data-correct="true"><span class="letter">A</span><span>Feature Store や SageMaker Pipelines へ書き出して再利用できる</span></button>
+          <button class="choice" data-correct="false"><span class="letter">B</span><span>一度使ったら破棄され、再実行はできない</span></button>
+          <button class="choice" data-correct="false"><span class="letter">C</span><span>書き出し先は S3 のみで、他サービスと連携できない</span></button>
+        </div>
+        <div class="feedback" role="status"></div>
+      </div>
+
+      <p class="quiz-score" id="quizScore"></p>
+    </div>
+  </section>
+
+  <div class="next-card">
+    <div class="n-emoji" aria-hidden="true">🏷️</div>
+    <div>
+      <h2>明日は Day 8：SageMaker Ground Truth とデータのラベリング</h2>
+      <p>教師あり学習に欠かせない「正解ラベル」を、効率よく・正確に付ける仕組みがテーマです。</p>
+    </div>
+    <span class="day8">DAY 8 →</span>
+  </div>
+
+  <footer>
+    <p>MLA毎日解説 ― Day 7 ｜ SageMaker Data Wrangler と SageMaker Feature Store</p>
+  </footer>
+
+</div>
+
+<script>
+(function(){
+  var phases = [
+    {
+      title: "取り込みと変換",
+      en: "DATA WRANGLER — IMPORT & TRANSFORM",
+      desc: "Data Wrangler は SageMaker Studio の中で動くビジュアルなデータ準備ツールです。データを読み込み、Day 6 で学んだ変換を画面操作で組み立てていきます。",
+      feats: [
+        { name: "多様なデータソース", en: "Data Sources", text: "Amazon S3、Athena、Redshift、Snowflake、Databricks などからデータをインポートできます。まずはサンプル行に対して対話的に作業し、後から全体に適用する流れです。" },
+        { name: "300 以上の組み込み変換", en: "Built-in Transforms", text: "欠損値の補完、One-Hot エンコーディング、スケーリング、文字列・日時処理などが用意され、ドラッグ＆ドロップ感覚で適用できます。カスタム変換として Spark SQL や pandas のコードを書くことも可能です。" },
+        { name: "フローとして保存", en: "Data Flow (.flow)", text: "変換の手順はフロー図（.flow ファイル）として残ります。「どの変換をどの順番でかけたか」がそのまま再現可能なレシピになるのがポイントです。" }
+      ],
+      tip: "試験ヒント：「ノーコード／ローコードで特徴量エンジニアリング」「Studio の画面で前処理」という表現が出たら Data Wrangler が答えです。"
+    },
+    {
+      title: "分析と書き出し",
+      en: "INSIGHTS & EXPORT",
+      desc: "Data Wrangler は変換するだけの道具ではありません。データの中身を分析して問題を早期に見つけ、作ったフローを他のサービスへ引き渡すところまでが役割です。",
+      feats: [
+        { name: "データインサイト", en: "Data Insights", text: "データの品質や分布をレポート化します。欠損や重複、クラスの偏りに加え、答えそのものを匂わせる列が混ざっていないかを調べるターゲットリーケージ検出も行えます。" },
+        { name: "クイックモデル", en: "Quick Model", text: "簡易的なモデルを自動で学習し、各特徴量の重要度をその場で確認できます。「どの特徴量が効きそうか」を本格的な学習の前に当たり付けできる機能です。" },
+        { name: "4つの書き出し先", en: "Export Options", text: "フローは Feature Store（特徴量として登録）、SageMaker Pipelines（パイプラインのステップ化）、S3（処理結果の出力）、Jupyter ノートブック（Python コードとして書き出し）の4方向へ渡せます。" }
+      ],
+      tip: "試験ヒント：「前処理を定期実行するパイプラインに組み込みたい」→ Pipelines へエクスポート。「処理をコードで管理したい」→ ノートブックへエクスポート、と要件で書き分けます。"
+    },
+    {
+      title: "特徴量の保管",
+      en: "FEATURE STORE — FEATURE GROUPS",
+      desc: "Feature Store は、作った特徴量を一元管理するリポジトリです。特徴量は「フィーチャーグループ」という単位で登録し、2種類のストアに保存されます。",
+      feats: [
+        { name: "フィーチャーグループ", en: "Feature Group", text: "特徴量の集合（テーブル）にあたる概念です。スキーマに加えて、レコード識別子（例：顧客ID）とイベント時刻を定義します。イベント時刻があるからこそ、後述のポイントインタイム処理が可能になります。" },
+        { name: "オンラインストア", en: "Online Store", text: "各レコードの最新値だけを保持し、ミリ秒単位の低レイテンシで取得できるストア。リアルタイム推論で「今この瞬間の特徴量」を取りに行く先です。" },
+        { name: "オフラインストア", en: "Offline Store", text: "全履歴を S3 に Parquet 形式で保持するストア。Athena で SQL クエリでき、学習データセットの作成やバッチ処理に使います。オンラインだけ／オフラインだけ／両方、という構成も選べます。" }
+      ],
+      tip: "試験ヒント：「特徴量をチームで再利用したい」「学習と推論で同じ特徴量を使いたい」→ Feature Store。「リアルタイム推論で取得」→ オンライン、「学習データ作成」→ オフライン、までセットで覚えましょう。",
+      warn: "注意：オンラインストアに残るのは最新値のみです。「過去の時点の特徴量」が必要な分析は、履歴を持つオフラインストア側で行います。"
+    },
+    {
+      title: "時点をそろえる",
+      en: "POINT-IN-TIME CORRECTNESS",
+      desc: "オフラインストアの真価は、イベント時刻を使って「その時点で知り得た特徴量だけ」で学習データを作れることです。これをポイントインタイム結合（正確性）と呼びます。",
+      feats: [
+        { name: "未来情報の混入を防ぐ", en: "Prevent Leakage", text: "たとえば「解約したかどうか」を予測するのに、解約後に更新されたステータスを特徴量に入れてしまうと、答えが漏れた学習になります。ポイントインタイム結合は、各レコードの発生時刻以前の値だけを結合してこれを防ぎます。" },
+        { name: "学習と本番の条件を一致させる", en: "Consistency", text: "本番の推論では「その瞬間までの情報」しか使えません。学習データも同じ条件で作ることで、オフライン評価と本番精度のギャップが小さくなります。" },
+        { name: "履歴があるからできること", en: "Powered by Offline Store", text: "この仕組みは、オフラインストアが上書きせずに全履歴＋イベント時刻を保持しているからこそ成立します。オンラインストア（最新値のみ）では実現できません。" }
+      ],
+      tip: "試験ヒント：「学習時の精度は高いのに本番で落ちる」「評価が不自然に良い」というシナリオでは、未来情報の混入（リーケージ）とポイントインタイム結合を連想しましょう。",
+      diagram: true
+    }
+  ];
+
+  var panel = document.getElementById('phasePanel');
+  var tabs = Array.prototype.slice.call(document.querySelectorAll('.flow-step'));
+
+  function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
+
+  var diagramHtml =
+    '<div class="diagram" role="img" aria-label="図解：顧客ステータスの変化のタイムライン。6月1日時点の取引には当時の値ゴールドが使え、8月1日にプラチナへ変わった後の値を6月の学習データに使うと未来情報の混入になる">' +
+      '<h4>🕰️ 図解：ポイントインタイム結合の考え方</h4>' +
+      '<p class="d-sub">ある顧客の会員ランク（特徴量）が時間とともに変わる例です。6月1日の取引を学習データにするなら、その時点で有効だった値を使う必要があります。</p>' +
+      '<div class="tl">' +
+        '<div class="tl-row"><span class="tl-when">2026-04-01</span><span class="tl-what">会員ランクが <b>ゴールド</b> に設定される</span></div>' +
+        '<div class="tl-row now"><span class="tl-when">2026-06-01</span><span class="tl-what">取引が発生 → 学習データには当時の値 <b>ゴールド</b> を結合</span><span class="tl-tag">正しい</span></div>' +
+        '<div class="tl-row"><span class="tl-when">2026-08-01</span><span class="tl-what">会員ランクが <b>プラチナ</b> に変更される</span></div>' +
+        '<div class="tl-row future"><span class="tl-when">2026-06-01（再掲）</span><span class="tl-what">6月の取引に <b>プラチナ</b> を結合してしまう</span><span class="tl-tag bad">未来情報の混入</span></div>' +
+      '</div>' +
+      '<p class="d-note">オフラインストアは値の<b>全履歴とイベント時刻</b>を保持するため、「その取引の時点の値」を正確に取り出せます。</p>' +
+    '</div>';
+
+  function renderPhase(i){
+    var p = phases[i];
+    var featsHtml = p.feats.map(function(f){
+      return '<div class="feat"><p class="fname"><span class="mono">' + esc(f.en) + '</span>' + esc(f.name) + '</p><p>' + esc(f.text) + '</p></div>';
+    }).join('');
+    var html =
+      '<h3>' + esc(p.title) + '<span class="en">' + esc(p.en) + '</span></h3>' +
+      '<p class="phase-desc">' + esc(p.desc) + '</p>' +
+      '<div class="feat-list">' + featsHtml + '</div>' +
+      (p.diagram ? diagramHtml : '') +
+      '<p class="phase-tip"><b>🎯 </b>' + esc(p.tip) + '</p>' +
+      (p.warn ? '<p class="phase-warn"><b>⚠️ </b>' + esc(p.warn) + '</p>' : '');
+    panel.innerHTML = html;
+    tabs.forEach(function(t, idx){
+      var on = idx === i;
+      t.classList.toggle('active', on);
+      t.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+  }
+
+  tabs.forEach(function(t){
+    t.addEventListener('click', function(){ renderPhase(parseInt(t.getAttribute('data-phase'), 10)); });
+  });
+  renderPhase(0);
+
+  /* quiz */
+  var totalQ = document.querySelectorAll('.quiz-block').length;
+  var answered = {};
+  var correctCount = 0;
+
+  var explanations = [
+    { ok: "正解！ リアルタイム推論では <b>オンラインストア</b> を使います。最新値だけを保持し、GetRecord API でミリ秒単位に取得できる設計です。",
+      ng: "残念、正解は <b>B：オンラインストア</b> です。オフラインストアは S3 上の履歴データで、Athena クエリ前提のため推論の応答速度には向きません。リアルタイム＝オンライン、と覚えましょう。" },
+    { ok: "正解！ <b>ポイントインタイム結合</b> です。オフラインストアがイベント時刻つきで全履歴を保持しているため、「予測時点で知り得た値だけ」を結合でき、未来情報の混入を防げます。",
+      ng: "残念、正解は <b>C：オフラインストアでのポイントインタイム結合</b> です。イベント時刻を使って各レコードの時点の値だけを結合することで、予測より後の情報が学習データに混ざるのを防ぎます。" },
+    { ok: "正解！ Data Wrangler のフローは <b>Feature Store への登録、SageMaker Pipelines のステップ化、S3 への出力、Jupyter ノートブックへのコード書き出し</b> ができ、作った前処理をそのまま運用に乗せられます。",
+      ng: "残念、正解は <b>A</b> です。フローは保存・再実行できるうえ、Feature Store や SageMaker Pipelines、ノートブックなど複数の書き出し先と連携できます。「使い捨て」「S3 のみ」は誤りです。" }
+  ];
+
+  document.querySelectorAll('.quiz-block').forEach(function(block){
+    var qi = parseInt(block.getAttribute('data-quiz'), 10);
+    var feedback = block.querySelector('.feedback');
+    block.querySelectorAll('.choice').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        if (answered[qi]) return;
+        answered[qi] = true;
+        var isCorrect = btn.getAttribute('data-correct') === 'true';
+        if (isCorrect) correctCount++;
+        block.querySelectorAll('.choice').forEach(function(b){
+          b.disabled = true;
+          if (b.getAttribute('data-correct') === 'true') b.classList.add('correct');
+        });
+        if (!isCorrect) btn.classList.add('wrong');
+        feedback.innerHTML = (isCorrect ? '⭕ ' : '❌ ') + (isCorrect ? explanations[qi].ok : explanations[qi].ng);
+        feedback.classList.add('show', isCorrect ? 'ok' : 'ng');
+        updateScore();
+      });
+    });
+  });
+
+  function updateScore(){
+    var done = Object.keys(answered).length;
+    var scoreEl = document.getElementById('quizScore');
+    if (done === totalQ) {
+      scoreEl.innerHTML = correctCount === totalQ
+        ? '🎉 結果：<span class="big">' + correctCount + ' / ' + totalQ + ' 問正解</span> ― 完璧です！Data Wrangler の役割と、オンライン／オフラインストアの使い分けがしっかり押さえられています。'
+        : '結果：<span class="big">' + correctCount + ' / ' + totalQ + ' 問正解</span> ― 間違えたところは、上の「比較表」と「間違えやすい点」を見直してみてください。';
+      scoreEl.classList.add('show');
+    }
+  }
+})();
+</script>
+</body>
+</html>
