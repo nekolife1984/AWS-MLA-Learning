@@ -19,7 +19,7 @@ https://nekolife1984.github.io/AWS-MLA-Learning/
 | Day 5 | Amazon Athena と AWS Lake Formation | [day-05](day-05/) |
 | Day 6 | 特徴量エンジニアリングの基礎（スケーリング、エンコーディング、欠損・外れ値） | [day-06](day-06/) |
 | Day 7 | SageMaker Data Wrangler と SageMaker Feature Store | [day-07](day-07/) |
-| Day 8 | SageMaker Ground Truth とデータのラベリング | 準備中 |
+| Day 8 | SageMaker Ground Truth とデータのラベリング | [day-08](day-08/) |
 | Day 9 | データの偏り（バイアス）と SageMaker Clarify（学習前バイアス） | 準備中 |
 | Day 10 | データ品質の検証と暗号化・匿名化（PII対応） | 準備中 |
 | Day 11 | 教師あり学習と教師なし学習、分類・回帰・クラスタリングの選び方 | 準備中 |
