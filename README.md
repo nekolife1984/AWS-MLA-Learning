@@ -21,7 +21,7 @@ https://nekolife1984.github.io/AWS-MLA-Learning/
 | Day 7 | SageMaker Data Wrangler と SageMaker Feature Store | [day-07](day-07/) |
 | Day 8 | SageMaker Ground Truth とデータのラベリング | [day-08](day-08/) |
 | Day 9 | データの偏り（バイアス）と SageMaker Clarify（学習前バイアス） | [day-09](day-09/) |
-| Day 10 | データ品質の検証と暗号化・匿名化（PII対応） | 準備中 |
+| Day 10 | データ品質の検証と暗号化・匿名化（PII対応） | [day-10](day-10/) |
 | Day 11 | 教師あり学習と教師なし学習、分類・回帰・クラスタリングの選び方 | 準備中 |
 | Day 12 | SageMaker の組み込みアルゴリズムの選び方 | 準備中 |
 | Day 13 | SageMaker Training Jobs と分散学習 | 準備中 |

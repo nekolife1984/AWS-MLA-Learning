@@ -1,0 +1,747 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="light dark" />
+<link rel="icon" href="data:," />
+<title>MLA解説 Day 10 — データ品質の検証と暗号化・匿名化（PII対応）</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;800;900&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f6f7f9;
+    --surface:#ffffff;
+    --surface-2:#fff7ed;
+    --surface-3:#f1f5f9;
+    --ink:#0f172a;
+    --ink-2:#334155;
+    --muted:#64748b;
+    --line:#e2e8f0;
+    --line-strong:#cbd5e1;
+    --orange:#ea580c;
+    --orange-bright:#ff9900;
+    --orange-soft:#ffedd5;
+    --teal:#0f766e;
+    --teal-soft:#ccfbf1;
+    --navy:#13233f;
+    --navy-2:#1e3a5f;
+    --red:#b91c1c;
+    --red-soft:#fee2e2;
+    --green:#15803d;
+    --green-soft:#dcfce7;
+    --code-bg:#0d1b2e;
+    --code-ink:#dbe6f3;
+    --code-key:#ffb25e;
+    --code-str:#7dd3fc;
+    --shadow:0 10px 30px rgba(15,23,42,.08);
+    --shadow-sm:0 2px 10px rgba(15,23,42,.06);
+    --radius:18px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0b1220;
+      --surface:#111c30;
+      --surface-2:#1c1a12;
+      --surface-3:#16233c;
+      --ink:#f1f5f9;
+      --ink-2:#cbd5e1;
+      --muted:#94a3b8;
+      --line:#24344f;
+      --line-strong:#334155;
+      --orange:#fb923c;
+      --orange-bright:#ff9900;
+      --orange-soft:#431407;
+      --teal:#2dd4bf;
+      --teal-soft:#042f2e;
+      --navy:#0f172a;
+      --navy-2:#1e293b;
+      --red:#fca5a5;
+      --red-soft:#450a0a;
+      --green:#86efac;
+      --green-soft:#052e16;
+      --code-bg:#081120;
+      --code-ink:#dbe6f3;
+      --code-key:#ffb25e;
+      --code-str:#7dd3fc;
+      --shadow:0 10px 30px rgba(0,0,0,.35);
+      --shadow-sm:0 2px 10px rgba(0,0,0,.3);
+    }
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:"Noto Sans JP", system-ui, -apple-system, "Hiragino Kaku Gothic ProN", sans-serif;
+    line-height:1.75;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:var(--orange)}
+  .wrap{max-width:920px;margin:0 auto;padding:20px 18px 56px}
+
+  /* ---------- top meta ---------- */
+  .meta-row{
+    display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:6px 0 18px;
+  }
+  .pill{
+    display:inline-flex;align-items:center;gap:6px;
+    font-size:12.5px;font-weight:700;letter-spacing:.02em;
+    padding:5px 11px;border-radius:999px;border:1px solid var(--line);
+    background:var(--surface);color:var(--ink-2);
+  }
+  .pill.day{background:var(--navy);color:#fff;border-color:var(--navy)}
+  @media (prefers-color-scheme: dark){ .pill.day{background:var(--orange-bright);color:#111827;border-color:var(--orange-bright)} }
+  .pill .dot{width:7px;height:7px;border-radius:50%;background:var(--orange-bright);flex:none}
+  .mono{font-family:"IBM Plex Mono", ui-monospace, monospace}
+
+  /* ---------- hero ---------- */
+  .hero{
+    background:var(--navy);
+    color:#fff;
+    border-radius:24px;
+    padding:30px 28px 26px;
+    position:relative;
+    overflow:hidden;
+    box-shadow:var(--shadow);
+  }
+  .hero::after{
+    content:"";position:absolute;right:-70px;top:-70px;width:260px;height:260px;border-radius:50%;
+    border:44px solid rgba(255,153,0,.22);pointer-events:none;
+  }
+  .hero::before{
+    content:"";position:absolute;right:54px;bottom:-90px;width:160px;height:160px;border-radius:50%;
+    border:28px solid rgba(45,212,191,.14);pointer-events:none;
+  }
+  .hero-kicker{font-size:13px;font-weight:800;letter-spacing:.14em;color:#ffb25e;text-transform:uppercase;margin:0 0 8px;position:relative;z-index:1}
+  .hero h1{font-size:32px;line-height:1.3;font-weight:900;margin:0 0 12px;position:relative;z-index:1;letter-spacing:.01em}
+  .hero h1 .hl{color:var(--orange-bright)}
+  .hero p.lead{margin:0;color:#dbe6f3;font-size:15.5px;max-width:640px;position:relative;z-index:1}
+  .hero-tags{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px;position:relative;z-index:1}
+  .hero-tags span{font-size:12.5px;font-weight:700;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);color:#e2e8f0;padding:4px 10px;border-radius:999px}
+
+  .oneline{
+    margin-top:16px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+    padding:18px 20px;box-shadow:var(--shadow-sm);display:flex;gap:14px;align-items:flex-start;
+  }
+  .oneline .icon{
+    flex:none;width:42px;height:42px;border-radius:12px;background:var(--orange-soft);display:grid;place-items:center;font-size:21px;
+  }
+  .oneline h2{font-size:13px;letter-spacing:.08em;color:var(--orange);margin:0 0 4px;font-weight:800}
+  .oneline p{margin:0;font-size:16.5px;font-weight:700;line-height:1.6;color:var(--ink)}
+  .oneline p b{color:var(--orange)}
+
+  /* ---------- sections ---------- */
+  section{margin-top:36px}
+  .sec-head{display:flex;align-items:baseline;gap:12px;margin-bottom:6px;flex-wrap:wrap}
+  .sec-num{
+    font-family:"IBM Plex Mono",monospace;font-size:13px;font-weight:600;color:#fff;background:var(--orange);
+    width:28px;height:28px;border-radius:8px;display:inline-grid;place-items:center;flex:none;align-self:center;
+  }
+  .sec-head h2{font-size:22px;font-weight:900;margin:0;line-height:1.3}
+  .sec-sub{color:var(--muted);font-size:14px;margin:2px 0 16px 40px}
+  @media (max-width:560px){ .sec-sub{margin-left:0} }
+
+  /* ---------- pipeline flow ---------- */
+  .flow{display:grid;grid-template-columns:1fr auto 1fr auto 1fr auto 1fr;align-items:stretch;gap:6px;margin:14px 0 18px}
+  .flow-step{
+    background:var(--surface);border:1.5px solid var(--line);border-radius:16px;padding:14px 12px;text-align:center;cursor:pointer;
+    transition:border-color .15s, background .15s, transform .15s;font-family:inherit;color:var(--ink);
+  }
+  .flow-step:hover{transform:translateY(-2px)}
+  .flow-step:focus-visible{outline:3px solid var(--orange-bright);outline-offset:2px}
+  .flow-step.active{border-color:var(--orange);background:var(--surface-2)}
+  .flow-step .step-emoji{font-size:24px;display:block;line-height:1.2}
+  .flow-step .step-no{font-family:"IBM Plex Mono",monospace;font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.08em}
+  .flow-step .step-name{font-weight:800;font-size:15px;display:block;margin-top:2px}
+  .flow-step .step-en{font-size:11.5px;color:var(--muted);display:block}
+  .flow-arrow{display:grid;place-items:center;color:var(--line-strong);font-size:18px;font-weight:900;pointer-events:none}
+  @media (max-width:640px){
+    .flow{grid-template-columns:1fr;gap:8px}
+    .flow-arrow{transform:rotate(90deg);padding:0;height:18px}
+    .flow-step{display:flex;align-items:center;gap:12px;text-align:left;padding:12px 14px}
+    .flow-step .step-emoji{font-size:22px}
+    .flow-step .step-meta{text-align:left}
+  }
+  .phase-panel{
+    background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:22px;box-shadow:var(--shadow-sm);
+  }
+  .phase-panel h3{margin:0 0 4px;font-size:19px;font-weight:900}
+  .phase-panel h3 .en{font-size:13px;color:var(--muted);font-weight:700;margin-left:8px;letter-spacing:.04em}
+  .phase-panel .phase-desc{color:var(--ink-2);font-size:14.5px;margin:0 0 16px}
+  .feat-list{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  @media (max-width:700px){ .feat-list{grid-template-columns:1fr} }
+  .feat{background:var(--surface-3);border-radius:14px;padding:14px 15px}
+  .feat .fname{font-weight:800;font-size:14.5px;margin:0 0 4px}
+  .feat .fname .mono{font-size:13px;color:var(--orange);display:block;font-weight:600}
+  .feat p{margin:0;font-size:13.5px;color:var(--ink-2);line-height:1.65}
+  .phase-tip{margin-top:14px;font-size:13.5px;background:var(--teal-soft);color:var(--ink);border-radius:12px;padding:11px 14px}
+  .phase-tip b{color:var(--teal)}
+
+  /* ---------- DQDL diagram ---------- */
+  .diagram{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:22px;box-shadow:var(--shadow-sm)}
+  .diagram .scenario{font-size:14.5px;color:var(--ink-2);margin:0 0 18px}
+  .diagram .scenario b{color:var(--ink)}
+  .dq-grid{display:grid;grid-template-columns:1.15fr 1fr;gap:14px;align-items:start}
+  @media (max-width:700px){ .dq-grid{grid-template-columns:1fr} }
+  .dq-box{background:var(--surface-3);border-radius:14px;padding:16px 17px}
+  .dq-box h3{margin:0 0 10px;font-size:15.5px;font-weight:900}
+  .dq-box h3 .mono{color:var(--orange);font-size:13px}
+  table.data{border-collapse:collapse;width:100%;font-size:13px}
+  table.data th,table.data td{padding:7px 8px;text-align:left;border-bottom:1px solid var(--line);line-height:1.5;word-break:break-all}
+  table.data th{font-size:11.5px;letter-spacing:.04em;color:var(--muted);font-weight:800}
+  table.data tr:last-child td{border-bottom:none}
+  table.data td.bad{background:var(--red-soft);color:var(--red);font-weight:800;border-radius:6px}
+  table.data td .empty{font-style:italic;font-weight:700}
+  .code-panel{
+    background:var(--code-bg);border-radius:14px;padding:16px 17px;color:var(--code-ink);
+    font-family:"IBM Plex Mono", ui-monospace, monospace;font-size:13px;line-height:1.8;overflow-x:auto;
+  }
+  .code-panel .cp-title{font-family:"Noto Sans JP",sans-serif;font-weight:900;font-size:15.5px;color:#fff;margin:0 0 8px}
+  .code-panel .cp-title .mono{color:var(--code-key);font-size:13px}
+  .code-panel pre{margin:0;white-space:pre}
+  .code-panel .k{color:var(--code-key);font-weight:600}
+  .code-panel .s{color:var(--code-str)}
+  .code-panel .c{color:#7d8ea8}
+  .verdict{margin-top:12px;border-radius:12px;padding:12px 15px;font-size:13.5px;line-height:1.65;background:var(--red-soft);color:var(--ink)}
+  .verdict b{font-weight:900}
+  .verdict ul{margin:6px 0 0;padding-left:18px}
+  .verdict li{margin:2px 0}
+  .diagram .conclusion{margin:16px 0 0;font-size:14.5px;color:var(--ink-2)}
+  .diagram .conclusion b{color:var(--orange)}
+  .diagram code,.dq-box code{
+    font-family:"IBM Plex Mono",monospace;font-size:.88em;background:var(--surface);border:1px solid var(--line);
+    padding:1px 6px;border-radius:6px;color:var(--orange);font-weight:600;white-space:nowrap;
+  }
+
+  /* ---------- service table ---------- */
+  .metric-wrap{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow-sm)}
+  table.metric{border-collapse:collapse;width:100%;font-size:14px}
+  table.metric th,table.metric td{padding:14px 16px;text-align:left;vertical-align:top;line-height:1.65}
+  table.metric thead th{background:var(--navy);color:#fff;font-size:13px;letter-spacing:.04em;font-weight:800;border:none}
+  @media (prefers-color-scheme: dark){ table.metric thead th{background:var(--surface-3);color:var(--ink)} }
+  table.metric tbody tr{border-top:1px solid var(--line)}
+  table.metric tbody tr:first-child{border-top:none}
+  table.metric td{color:var(--ink-2)}
+  table.metric td.mname{white-space:nowrap}
+  table.metric .abbr{font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:16px;color:var(--orange);display:block;line-height:1.3}
+  table.metric .full{font-size:11.5px;color:var(--muted);display:block;line-height:1.45}
+  table.metric .what{font-weight:800;color:var(--ink);font-size:14.5px}
+  table.metric code{
+    font-family:"IBM Plex Mono",monospace;font-size:.86em;background:var(--surface-3);border:1px solid var(--line);
+    padding:1px 6px;border-radius:6px;color:var(--orange);font-weight:600;
+  }
+  @media (max-width:640px){
+    table.metric,table.metric tbody,table.metric tr,table.metric td{display:block;width:100%}
+    table.metric thead{display:none}
+    table.metric tbody tr{padding:14px 16px 6px}
+    table.metric td{padding:0 0 10px;border:none}
+    table.metric td::before{
+      content:attr(data-label);display:block;font-size:11px;font-weight:800;letter-spacing:.08em;color:var(--muted);margin-bottom:2px;
+    }
+    table.metric td.mname{white-space:normal}
+    table.metric td.mname::before{content:""}
+  }
+  .table-note{font-size:13.5px;color:var(--ink-2);background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:11px 15px;margin-top:12px}
+  .table-note b{color:var(--orange)}
+
+  /* ---------- exam points ---------- */
+  .exam-list{display:flex;flex-direction:column;gap:12px}
+  .exam-item{
+    display:flex;gap:14px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;box-shadow:var(--shadow-sm);
+  }
+  .exam-item .badge{
+    flex:none;width:34px;height:34px;border-radius:50%;background:var(--navy);color:#fff;font-weight:800;font-size:15px;display:grid;place-items:center;margin-top:2px;
+  }
+  @media (prefers-color-scheme: dark){ .exam-item .badge{background:var(--orange-bright);color:#111827} }
+  .exam-item h3{margin:0 0 4px;font-size:16px;font-weight:800}
+  .exam-item p{margin:0;font-size:14.5px;color:var(--ink-2)}
+  .exam-item code,.feat code,.compare code{
+    font-family:"IBM Plex Mono",monospace;font-size:.88em;background:var(--surface-3);border:1px solid var(--line);
+    padding:1px 6px;border-radius:6px;color:var(--orange);font-weight:600;white-space:nowrap;
+  }
+
+  /* ---------- compare ---------- */
+  .compare{display:flex;flex-direction:column;gap:14px}
+  .compare-row{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow-sm)}
+  .compare-vs{display:grid;grid-template-columns:1fr auto 1fr}
+  @media (max-width:640px){ .compare-vs{grid-template-columns:1fr} .vs-badge{margin:0 auto} }
+  .compare-cell{padding:18px 20px}
+  .compare-cell.a{background:var(--surface-2)}
+  .compare-cell h3{margin:0 0 5px;font-size:16.5px;font-weight:900}
+  .compare-cell p{margin:0;font-size:14px;color:var(--ink-2)}
+  .vs-badge{align-self:center;width:38px;height:38px;border-radius:50%;background:var(--ink);color:var(--bg);font-weight:900;font-size:12px;display:grid;place-items:center;letter-spacing:.05em;z-index:1;margin:0 -6px}
+  .compare-note{padding:12px 20px;border-top:1px dashed var(--line-strong);font-size:13.5px;color:var(--ink-2);background:var(--surface)}
+  .compare-note b{color:var(--orange)}
+
+  /* ---------- quiz ---------- */
+  .quiz{
+    background:var(--navy);color:#fff;border-radius:24px;padding:26px 24px;box-shadow:var(--shadow);position:relative;overflow:hidden;
+  }
+  .quiz::after{content:"?";position:absolute;right:14px;top:-28px;font-size:150px;font-weight:900;color:rgba(255,255,255,.06);line-height:1;pointer-events:none}
+  .quiz .q-label{font-size:12.5px;font-weight:800;letter-spacing:.12em;color:#ffb25e;margin:0 0 8px}
+  .quiz h2{font-size:20px;font-weight:900;margin:0 0 6px;line-height:1.45}
+  .quiz .q-sub{color:#cbd5e1;font-size:13.5px;margin:0 0 18px}
+  .quiz-block{margin-bottom:22px;position:relative;z-index:1}
+  .quiz-block:last-child{margin-bottom:0}
+  .quiz-q{font-weight:700;font-size:15.5px;margin:0 0 12px;line-height:1.65}
+  .quiz-q .qno{color:var(--orange-bright);font-family:"IBM Plex Mono",monospace;margin-right:6px}
+  .choices{display:flex;flex-direction:column;gap:9px}
+  .choice{
+    text-align:left;font-family:inherit;font-size:14.5px;font-weight:600;color:#e2e8f0;
+    background:rgba(255,255,255,.07);border:1.5px solid rgba(255,255,255,.22);border-radius:12px;
+    padding:12px 15px;cursor:pointer;display:flex;gap:10px;align-items:flex-start;line-height:1.55;
+  }
+  .choice:hover{border-color:var(--orange-bright)}
+  .choice:focus-visible{outline:3px solid var(--orange-bright);outline-offset:2px}
+  .choice .letter{flex:none;width:24px;height:24px;border-radius:7px;background:rgba(255,255,255,.14);display:grid;place-items:center;font-size:13px;font-weight:800;margin-top:1px}
+  .choice.correct{border-color:#4ade80;background:rgba(74,222,128,.16);color:#fff}
+  .choice.correct .letter{background:#22c55e;color:#fff}
+  .choice.wrong{border-color:#f87171;background:rgba(248,113,113,.14)}
+  .choice.wrong .letter{background:#dc2626;color:#fff}
+  .choice:disabled{cursor:default;opacity:.92}
+  .feedback{display:none;margin-top:12px;border-radius:12px;padding:12px 15px;font-size:14px;line-height:1.65}
+  .feedback.show{display:block}
+  .feedback.ok{background:rgba(74,222,128,.15);border:1px solid rgba(74,222,128,.4)}
+  .feedback.ng{background:rgba(248,113,113,.13);border:1px solid rgba(248,113,113,.4)}
+  .feedback b{color:#fff}
+  .quiz-score{margin-top:18px;font-size:14px;font-weight:700;color:#e2e8f0;display:none;position:relative;z-index:1}
+  .quiz-score.show{display:block}
+  .quiz-score .big{color:var(--orange-bright);font-size:18px}
+
+  /* ---------- next / footer ---------- */
+  .next-card{
+    margin-top:36px;display:flex;gap:16px;align-items:center;background:var(--surface);border:1.5px dashed var(--line-strong);
+    border-radius:var(--radius);padding:20px 22px;
+  }
+  .next-card .n-emoji{font-size:32px;flex:none}
+  .next-card h2{margin:0 0 2px;font-size:16.5px;font-weight:900}
+  .next-card p{margin:0;font-size:14px;color:var(--muted)}
+  .next-card .day11{margin-left:auto;flex:none;font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:13px;color:var(--orange);border:1px solid var(--orange);border-radius:999px;padding:5px 12px;white-space:nowrap}
+  @media (max-width:560px){ .next-card{flex-wrap:wrap} .next-card .day11{margin-left:0} }
+  footer{margin-top:28px;text-align:center;color:var(--muted);font-size:12.5px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="meta-row" aria-label="メタ情報">
+    <span class="pill day">DAY 10 / 84</span>
+    <span class="pill"><span class="dot"></span>AWS MLA-C01 対策</span>
+    <span class="pill">⏱ 読了目安 約5分</span>
+    <span class="pill mono">2026.11.05 THU</span>
+  </div>
+
+  <header class="hero">
+    <p class="hero-kicker">Machine Learning — Lesson 10</p>
+    <h1>データ品質の検証と<br>暗号化・<span class="hl">匿名化</span>（PII対応）</h1>
+    <p class="lead">悪いデータで学習すれば、悪いモデルができあがります。さらに個人情報を含むデータは、守り方を間違うとそのまま事故のもとに。今日は「品質を検証する」「暗号化する」「PII を見つけて加工する」という、学習前の3つの守りを押さえます。</p>
+    <div class="hero-tags">
+      <span># データ品質</span><span># Glue Data Quality / DQDL</span><span># 暗号化（KMS）</span><span># PII（Macie / Comprehend）</span>
+    </div>
+  </header>
+
+  <div class="oneline">
+    <div class="icon" aria-hidden="true">🛡️</div>
+    <div>
+      <h2>一言で言うと</h2>
+      <p><b>欠け・重複・型ズレ</b>のない良いデータだけを使い、個人情報は<b>暗号化＋匿名化</b>して守ってから学習することです。</p>
+    </div>
+  </div>
+
+  <!-- 01 pipeline -->
+  <section aria-labelledby="sec1">
+    <div class="sec-head"><span class="sec-num">01</span><h2 id="sec1">データが通る「4つの関所」― 検証・暗号化・PII対応・運用監視</h2></div>
+    <p class="sec-sub">ステップをタップすると、その関所でどのサービスが何をするかが切り替わります。データは「入ってくるとき」「保管中」「使う前」「運用中」の各場面で守られます。</p>
+
+    <div class="flow" role="tablist" aria-label="データ保護のパイプライン">
+      <button class="flow-step active" role="tab" aria-selected="true" data-phase="0" id="tab-0">
+        <span class="step-emoji" aria-hidden="true">✅</span>
+        <span class="step-meta"><span class="step-no">STEP 1</span><span class="step-name">検証</span><span class="step-en">Glue Data Quality</span></span>
+      </button>
+      <span class="flow-arrow" aria-hidden="true">›</span>
+      <button class="flow-step" role="tab" aria-selected="false" data-phase="1" id="tab-1">
+        <span class="step-emoji" aria-hidden="true">🔐</span>
+        <span class="step-meta"><span class="step-no">STEP 2</span><span class="step-name">暗号化</span><span class="step-en">S3 / KMS</span></span>
+      </button>
+      <span class="flow-arrow" aria-hidden="true">›</span>
+      <button class="flow-step" role="tab" aria-selected="false" data-phase="2" id="tab-2">
+        <span class="step-emoji" aria-hidden="true">🕵️</span>
+        <span class="step-meta"><span class="step-no">STEP 3</span><span class="step-name">PII対応</span><span class="step-en">Macie / Comprehend</span></span>
+      </button>
+      <span class="flow-arrow" aria-hidden="true">›</span>
+      <button class="flow-step" role="tab" aria-selected="false" data-phase="3" id="tab-3">
+        <span class="step-emoji" aria-hidden="true">📡</span>
+        <span class="step-meta"><span class="step-no">STEP 4</span><span class="step-name">運用監視</span><span class="step-en">Model Monitor</span></span>
+      </button>
+    </div>
+
+    <div class="phase-panel" role="tabpanel" aria-live="polite" id="phasePanel">
+      <!-- JSで差し替え -->
+    </div>
+  </section>
+
+  <!-- 02 DQDL diagram -->
+  <section aria-labelledby="sec2">
+    <div class="sec-head"><span class="sec-num">02</span><h2 id="sec2">図解：DQDL ルールで「悪いデータ」を止める</h2></div>
+    <p class="sec-sub">Glue Data Quality のルールは DQDL という言語で書きます。左の顧客データに潜む3つの問題を、右のルールがどう検出するか見てみましょう。</p>
+
+    <div class="diagram">
+      <p class="scenario">例：EC サイトの顧客マスタを取り込む ETL ジョブ。<b>欠損・重複・型ズレ</b>のある行が混ざっていたら、学習に使う前に止めたいところです。</p>
+      <div class="dq-grid">
+        <div class="dq-box">
+          <h3><span class="mono">INPUT</span> 取り込む顧客データ</h3>
+          <table class="data">
+            <thead>
+              <tr><th>customer_id</th><th>email</th><th>age</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>C001</td><td>a@example.com</td><td>34</td></tr>
+              <tr><td class="bad">C001</td><td>b@example.com</td><td>28</td></tr>
+              <tr><td>C003</td><td class="bad"><span class="empty">（空）</span></td><td>41</td></tr>
+              <tr><td>C004</td><td>d@example.com</td><td class="bad">不明</td></tr>
+            </tbody>
+          </table>
+          <p style="margin:10px 0 0;font-size:12.5px;color:var(--muted)">赤いセルが問題箇所：ID の重複、email の欠損、age の型ズレ（数値のはずが文字列）。</p>
+        </div>
+        <div>
+          <div class="code-panel" role="img" aria-label="DQDL ルールセットの例：IsComplete email、IsUnique customer_id、ColumnDataType age = INT">
+            <p class="cp-title"><span class="mono">DQDL</span> ルールセット</p>
+            <pre><span class="k">Rules</span> = [
+  <span class="k">IsComplete</span> <span class="s">"email"</span>,
+  <span class="k">IsUnique</span> <span class="s">"customer_id"</span>,
+  <span class="k">ColumnDataType</span> <span class="s">"age"</span> = <span class="s">"INT"</span>
+]</pre>
+          </div>
+          <div class="verdict">
+            <b>❌ 検証結果：FAIL ― 3つのルールすべてに違反</b>
+            <ul>
+              <li><code>IsComplete</code>：C003 の email が欠けている</li>
+              <li><code>IsUnique</code>：C001 が2行に重複している</li>
+              <li><code>ColumnDataType</code>：age に文字列「不明」が混入</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <p class="conclusion">ルールに違反したら、ETL ジョブを<b>止める／アラートを出す</b>のが基本動作です。「悪いデータを黙って通す」のではなく、<b>学習データになる前に検出して弾く</b>。これが Glue Data Quality の役割です。ほかにも <code>RowCount</code>（行数）、<code>ColumnCount</code>（列数）、<code>DataFreshness</code>（鮮度）などのルールがあります。</p>
+    </div>
+  </section>
+
+  <!-- 03 service table -->
+  <section aria-labelledby="sec3">
+    <div class="sec-head"><span class="sec-num">03</span><h2 id="sec3">サービス担当表 ― 「いつ・何を」守るのか</h2></div>
+    <p class="sec-sub">試験では、サービス名そのものより「どのタイミングの、どの仕事か」が問われます。担当範囲で整理しましょう。</p>
+
+    <div class="metric-wrap">
+      <table class="metric">
+        <thead>
+          <tr><th scope="col">サービス</th><th scope="col">担当</th><th scope="col">タイミング・対象</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="mname" data-label="サービス"><span class="abbr">Glue Data Quality</span><span class="full">AWS Glue Data Quality</span></td>
+            <td data-label="担当"><span class="what">データ品質の検証</span><br>DQDL ルールで欠損・重複・型などをチェックし、不合格のデータを止める</td>
+            <td data-label="タイミング・対象"><b>取り込み・ETL 時</b>。Glue ジョブや Data Catalog のデータが対象</td>
+          </tr>
+          <tr>
+            <td class="mname" data-label="サービス"><span class="abbr">Model Monitor</span><span class="full">SageMaker Model Monitor</span></td>
+            <td data-label="担当"><span class="what">運用中のデータ品質監視</span><br>推論データの分布やスキーマをベースラインと比べてドリフトを検出</td>
+            <td data-label="タイミング・対象"><b>本番運用中</b>。デプロイ済みエンドポイントへの入力データが対象</td>
+          </tr>
+          <tr>
+            <td class="mname" data-label="サービス"><span class="abbr">Macie</span><span class="full">Amazon Macie</span></td>
+            <td data-label="担当"><span class="what">PII の発見・分類</span><br>S3 バケットを走査し、氏名・住所・クレジットカード番号などの個人情報がどこにあるかを洗い出す</td>
+            <td data-label="タイミング・対象"><b>保管中のデータ</b>。Amazon S3 のオブジェクトが対象</td>
+          </tr>
+          <tr>
+            <td class="mname" data-label="サービス"><span class="abbr">Comprehend</span><span class="full">Amazon Comprehend</span></td>
+            <td data-label="担当"><span class="what">テキストの PII 検出・マスキング</span><br>文章中の個人情報を検出し、<code>DetectPiiEntities</code> などで特定して伏せる（編集する）</td>
+            <td data-label="タイミング・対象"><b>文章データ</b>。レビュー文・問い合わせ文などのテキストが対象</td>
+          </tr>
+          <tr>
+            <td class="mname" data-label="サービス"><span class="abbr">KMS</span><span class="full">AWS Key Management Service</span></td>
+            <td data-label="担当"><span class="what">暗号化鍵の作成・管理</span><br>S3 や SageMaker など各サービスの暗号化で使う鍵を一元管理する基盤</td>
+            <td data-label="タイミング・対象"><b>暗号化全般の土台</b>。SSE-KMS や SageMaker の暗号化設定で指定する</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="table-note">🔑 覚え方：<b>入るときは Glue、動いているときは Model Monitor、S3 の中身探しは Macie、文章は Comprehend、鍵は KMS</b>。問題文の「場面」から逆引きするのがコツです。</p>
+  </section>
+
+  <!-- 04 exam -->
+  <section aria-labelledby="sec4">
+    <div class="sec-head"><span class="sec-num">04</span><h2 id="sec4">試験で問われるポイント</h2></div>
+    <p class="sec-sub">MLA-C01 では「検証のタイミング」「PII の担当分け」「鍵の管理方法」の3点が頻出です。</p>
+    <div class="exam-list">
+      <div class="exam-item">
+        <div class="badge">1</div>
+        <div>
+          <h3>品質チェックは「ETL 時」と「運用中」で担当が違う</h3>
+          <p>データを取り込む段階の検証は <code>Glue Data Quality</code>、モデルが本番で動いている間の入力データの監視は <code>SageMaker Model Monitor</code> です。どちらも「データ品質」に関わりますが、<b>タイミングで使い分け</b>ます。「デプロイ後のドリフト監視」と書かれていたら Model Monitor、「ETL ジョブでのルール検証」なら Glue Data Quality が答えです。</p>
+        </div>
+      </div>
+      <div class="exam-item">
+        <div class="badge">2</div>
+        <div>
+          <h3>PII は「発見は Macie」「文章の処理は Comprehend」</h3>
+          <p>S3 バケットのどこに個人情報があるか分からない、という棚卸しは <code>Amazon Macie</code>。レビュー文や問い合わせ文の中の氏名・電話番号を見つけて伏せたい、という文章処理は <code>Amazon Comprehend</code> です。対象が「S3 のファイル」か「テキストの中身」かで切り分けます。</p>
+        </div>
+      </div>
+      <div class="exam-item">
+        <div class="badge">3</div>
+        <div>
+          <h3>暗号化の鍵は KMS が管理する（SSE-S3 との違い）</h3>
+          <p>S3 のサーバー側暗号化には、S3 が鍵を管理する <code>SSE-S3</code> と、KMS の鍵を使う <code>SSE-KMS</code> があります。SSE-KMS なら<b>キーポリシーで鍵の利用者を制御</b>でき、鍵の使用履歴を <b>CloudTrail で監査</b>できます。SageMaker でも、学習ジョブの出力やボリュームの暗号化に KMS キーを指定するのが定番です。「監査・厳密な鍵管理が必要」と書かれたら SSE-KMS です。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 05 compare -->
+  <section aria-labelledby="sec5">
+    <div class="sec-head"><span class="sec-num">05</span><h2 id="sec5">間違えやすい！混同しやすいポイント</h2></div>
+    <p class="sec-sub">今日最大の引っかけは「暗号化したから PII 対策は万全」という思い込みと、「匿名化」と「仮名化」の取り違えです。</p>
+    <div class="compare">
+      <div class="compare-row">
+        <div class="compare-vs">
+          <div class="compare-cell a">
+            <h3>暗号化</h3>
+            <p>鍵でデータを読み取れない形にする<b>保管の守り</b>。正しい鍵があれば<b>元に戻せる（復号できる）</b>のが前提の仕組み。</p>
+          </div>
+          <div class="vs-badge" aria-hidden="true">VS</div>
+          <div class="compare-cell">
+            <h3>匿名化・マスキング</h3>
+            <p>氏名や電話番号そのものを消す・伏せるなど、<b>データの中身を加工</b>して個人を特定できないようにする処理。</p>
+          </div>
+        </div>
+        <div class="compare-note">🔑 見分け方：<b>暗号化だけでは PII 対策になりません</b>。復号すれば平文に戻るし、学習に使う時点では中身が読める状態です。「守る（暗号化）」と「見えなくする（匿名化・マスキング）」は目的が違うので、両方必要です。</div>
+      </div>
+
+      <div class="compare-row">
+        <div class="compare-vs">
+          <div class="compare-cell a">
+            <h3>匿名化</h3>
+            <p>個人を特定できる情報を取り除き、<b>元に戻せない（不可逆）</b>形に加工する。本人を再び特定することはできない。</p>
+          </div>
+          <div class="vs-badge" aria-hidden="true">VS</div>
+          <div class="compare-cell">
+            <h3>仮名化</h3>
+            <p>氏名を ID などに置き換える加工。<b>対応表（変換テーブル）があれば元の個人に戻せる</b>。対応表自体の管理が重要になる。</p>
+          </div>
+        </div>
+        <div class="compare-note">🔑 見分け方：キーワードは「戻せるかどうか」。<b>匿名化 ＝ 戻せない、仮名化 ＝ 対応表で戻せる</b>。問題文に「対応表」「再識別できる」とあれば仮名化です。</div>
+      </div>
+
+      <div class="compare-row">
+        <div class="compare-vs">
+          <div class="compare-cell a">
+            <h3>Amazon Macie</h3>
+            <p>担当は <b>S3 の棚卸し</b>。バケット全体を走査して、個人情報を含むファイルの<b>発見と分類</b>を行う。</p>
+          </div>
+          <div class="vs-badge" aria-hidden="true">VS</div>
+          <div class="compare-cell">
+            <h3>Amazon Comprehend</h3>
+            <p>担当は<b>文章の処理</b>。渡されたテキストの中から PII を<b>検出してマスキング（編集）</b>する。</p>
+          </div>
+        </div>
+        <div class="compare-note">🔑 見分け方：「バケットのどこにあるか分からない」→ Macie、「この文章の中の氏名を伏せたい」→ Comprehend。<b>場所を探すのが Macie、文章を加工するのが Comprehend</b> です。</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- quiz -->
+  <section aria-labelledby="quizTitle">
+    <div class="quiz">
+      <p class="q-label">CHECK QUIZ — 確認クイズ</p>
+      <h2 id="quizTitle">今日の理解度チェック（全4問）</h2>
+      <p class="q-sub">選択肢をタップすると、その場で答え合わせができます。</p>
+
+      <div class="quiz-block" data-quiz="0">
+        <p class="quiz-q"><span class="qno">Q1.</span>長年使ってきた S3 バケットの中の、どこに個人情報が含まれているか分からなくなってしまった。まず何で調べるのが適切か？</p>
+        <div class="choices">
+          <button class="choice" data-correct="true"><span class="letter">A</span><span>Amazon Macie でバケットを走査して PII を発見・分類する</span></button>
+          <button class="choice" data-correct="false"><span class="letter">B</span><span>Amazon Comprehend でテキストを解析する</span></button>
+          <button class="choice" data-correct="false"><span class="letter">C</span><span>AWS Glue Data Quality で DQDL ルールを実行する</span></button>
+        </div>
+        <div class="feedback" role="status"></div>
+      </div>
+
+      <div class="quiz-block" data-quiz="1">
+        <p class="quiz-q"><span class="qno">Q2.</span>ETL ジョブで取り込むデータについて、「email 列に欠損がないこと」と「customer_id が重複しないこと」をルールで検証したい。適切な組み合わせはどれか？</p>
+        <div class="choices">
+          <button class="choice" data-correct="false"><span class="letter">A</span><span>SageMaker Model Monitor でベースラインと比較する</span></button>
+          <button class="choice" data-correct="true"><span class="letter">B</span><span>Glue Data Quality の DQDL で IsComplete と IsUnique を使う</span></button>
+          <button class="choice" data-correct="false"><span class="letter">C</span><span>Amazon Macie でデータ品質をスキャンする</span></button>
+        </div>
+        <div class="feedback" role="status"></div>
+      </div>
+
+      <div class="quiz-block" data-quiz="2">
+        <p class="quiz-q"><span class="qno">Q3.</span>学習用データを S3 に SSE-KMS で暗号化して保存した。これで個人情報（PII）対策として十分と言えるか？</p>
+        <div class="choices">
+          <button class="choice" data-correct="false"><span class="letter">A</span><span>十分。暗号化されていれば個人情報は保護されたことになる</span></button>
+          <button class="choice" data-correct="true"><span class="letter">B</span><span>不十分。暗号化は復号すれば読めるため、匿名化・マスキングが別途必要</span></button>
+          <button class="choice" data-correct="false"><span class="letter">C</span><span>十分。ただし SSE-S3 ではなく SSE-KMS でなければならない</span></button>
+        </div>
+        <div class="feedback" role="status"></div>
+      </div>
+
+      <div class="quiz-block" data-quiz="3">
+        <p class="quiz-q"><span class="qno">Q4.</span>匿名化と仮名化の違いとして、正しいものはどれか？</p>
+        <div class="choices">
+          <button class="choice" data-correct="false"><span class="letter">A</span><span>匿名化は対応表で復元できるが、仮名化は復元できない</span></button>
+          <button class="choice" data-correct="false"><span class="letter">B</span><span>どちらも復元できず、違いはない</span></button>
+          <button class="choice" data-correct="true"><span class="letter">C</span><span>匿名化は元に戻せないが、仮名化は対応表を使って復元できる</span></button>
+        </div>
+        <div class="feedback" role="status"></div>
+      </div>
+
+      <p class="quiz-score" id="quizScore"></p>
+    </div>
+  </section>
+
+  <div class="next-card">
+    <div class="n-emoji" aria-hidden="true">🧭</div>
+    <div>
+      <h2>明日は Day 11：教師あり学習と教師なし学習、分類・回帰・クラスタリングの選び方</h2>
+      <p>データの準備と守りが整ったら、いよいよ学習の考え方へ。「何を予測したいか」で手法を選ぶ回です。</p>
+    </div>
+    <span class="day11">DAY 11 →</span>
+  </div>
+
+  <footer>
+    <p>MLA毎日解説 ― Day 10 ｜ データ品質の検証と暗号化・匿名化（PII対応）</p>
+  </footer>
+
+</div>
+
+<script>
+(function(){
+  var phases = [
+    {
+      title: "検証",
+      en: "GLUE DATA QUALITY",
+      desc: "データが入ってくる関所です。学習データになる前に、欠け・重複・型ズレといった「品質の不良品」をルールで弾きます。",
+      feats: [
+        { name: "DQDL ルール", en: "DQDL Rules", text: "品質ルールを宣言的に書ける言語です。IsComplete（欠損なし）、IsUnique（重複なし）、ColumnDataType（型の一致）、RowCount（行数）などを組み合わせてルールセットを作ります。" },
+        { name: "ETL との連携", en: "ETL Integration", text: "Glue ETL ジョブや Data Catalog のテーブルに対して検証を実行できます。ルール違反時はジョブを止めたりアラートを出したりして、悪いデータの流入を防ぎます。" },
+        { name: "ルールの自動提案", en: "Rule Recommendation", text: "データのプロファイル（統計情報）をもとに、ルールの候補を自動で提案してくれます。ゼロからルールを考える負担を減らせます。" }
+      ],
+      tip: "試験ヒント：「取り込み時・ETL 時の品質検証」といえば Glue Data Quality。ルール言語の名前 DQDL もセットで覚えましょう。"
+    },
+    {
+      title: "暗号化",
+      en: "S3 SSE / KMS",
+      desc: "保管中のデータを守る関所です。ディスクやバケットに置かれたデータを、鍵がないと読めない形にしておきます。",
+      feats: [
+        { name: "SSE-S3", en: "SSE-S3", text: "Amazon S3 が管理する鍵で自動的に暗号化する方式です。特別な設定なしに、保管時の暗号化が実現できます。" },
+        { name: "SSE-KMS", en: "SSE-KMS", text: "AWS KMS の鍵を使う方式です。キーポリシーで利用者を制御でき、鍵の使用は CloudTrail に記録されるため監査に向きます。" },
+        { name: "SageMaker の暗号化", en: "SageMaker + KMS", text: "SageMaker でも、学習ジョブの出力やインスタンスのボリューム暗号化に KMS キーを指定できます。鍵管理の中心は一貫して KMS です。" }
+      ],
+      tip: "試験ヒント：「鍵の利用を監査したい」「キーポリシーで制御したい」と書かれたら SSE-KMS。鍵管理のサービス名は KMS です。"
+    },
+    {
+      title: "PII対応",
+      en: "MACIE / COMPREHEND",
+      desc: "データの中の個人情報（PII）に対処する関所です。まず「どこにあるか」を洗い出し、学習に使う前に特定できない形へ加工します。",
+      feats: [
+        { name: "Amazon Macie", en: "Macie", text: "S3 バケットを走査して、氏名・住所・クレジットカード番号などの機密データを機械学習で発見・分類します。PII の棚卸し役です。" },
+        { name: "Amazon Comprehend", en: "Comprehend", text: "テキスト（文章）の中の PII を検出する機能を持ちます。DetectPiiEntities で氏名や電話番号の位置を特定し、マスキング（伏せる処理）につなげられます。" },
+        { name: "匿名化・マスキング", en: "Anonymization / Masking", text: "見つけた PII は、削除・置換・マスキングで個人を特定できない形に加工してから学習に使います。暗号化とは目的の違う処理です。" }
+      ],
+      tip: "試験ヒント：S3 の PII 発見は Macie、文章の PII 検出・マスキングは Comprehend。対象が「ファイル」か「文章」かで見分けます。"
+    },
+    {
+      title: "運用監視",
+      en: "SAGEMAKER MODEL MONITOR",
+      desc: "モデルが本番で動き始めた後の関所です。学習時は良かったデータも、運用中に性質が変わっていくことがあります。",
+      feats: [
+        { name: "データ品質の監視", en: "Data Quality Monitoring", text: "エンドポイントへの入力データをキャプチャし、学習時に作ったベースライン（統計情報）と比べて、分布やスキーマのズレ（ドリフト）を検出します。" },
+        { name: "スケジュールと通知", en: "Schedule & Alert", text: "監視はスケジュールで定期実行でき、違反があれば CloudWatch や SNS 経由でアラートを上げられます。" },
+        { name: "入口との役割分担", en: "vs Glue Data Quality", text: "入口の検証（ETL 時）は Glue Data Quality、運用中の監視は Model Monitor。同じ「データ品質」でも担当するタイミングが違います。" }
+      ],
+      tip: "試験ヒント：「デプロイ後の入力データを継続監視」「ドリフトを検出」といえば Model Monitor です。"
+    }
+  ];
+
+  var panel = document.getElementById('phasePanel');
+  var tabs = Array.prototype.slice.call(document.querySelectorAll('.flow-step'));
+
+  function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
+
+  function renderPhase(i){
+    var p = phases[i];
+    var featsHtml = p.feats.map(function(f){
+      return '<div class="feat"><p class="fname"><span class="mono">' + esc(f.en) + '</span>' + esc(f.name) + '</p><p>' + esc(f.text) + '</p></div>';
+    }).join('');
+    panel.innerHTML =
+      '<h3>' + esc(p.title) + '<span class="en">' + esc(p.en) + '</span></h3>' +
+      '<p class="phase-desc">' + esc(p.desc) + '</p>' +
+      '<div class="feat-list">' + featsHtml + '</div>' +
+      '<p class="phase-tip"><b>🎯 </b>' + esc(p.tip) + '</p>';
+    tabs.forEach(function(t, idx){
+      var on = idx === i;
+      t.classList.toggle('active', on);
+      t.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+  }
+
+  tabs.forEach(function(t){
+    t.addEventListener('click', function(){ renderPhase(parseInt(t.getAttribute('data-phase'), 10)); });
+  });
+  renderPhase(0);
+
+  /* quiz */
+  var totalQ = document.querySelectorAll('.quiz-block').length;
+  var answered = {};
+  var correctCount = 0;
+
+  var explanations = [
+    { ok: "正解！ <b>Amazon Macie</b> です。Macie は S3 バケットを走査して、個人情報（PII）を含むデータを発見・分類するサービス。「どこにあるか分からない」という棚卸しの場面こそ Macie の出番です。",
+      ng: "残念、正解は <b>A：Amazon Macie</b> です。Comprehend は「渡された文章」の中の PII 検出が担当で、バケット全体の棚卸しはできません。Glue Data Quality は欠損・重複などの品質検証用で、PII の発見は担当外です。" },
+    { ok: "正解！ 取り込み・ETL 時の品質検証は <b>Glue Data Quality</b> です。DQDL の <b>IsComplete</b> が「欠損なし」、<b>IsUnique</b> が「重複なし」を表します。ルールの名前と意味のペアがそのまま問われます。",
+      ng: "残念、正解は <b>B：Glue Data Quality の DQDL</b> です。Model Monitor は運用中のモデルの入力監視が担当（A は誤り）、Macie は S3 の PII 発見が担当（C は誤り）です。ETL 時の検証といえば Glue Data Quality でした。" },
+    { ok: "正解！ <b>暗号化だけでは PII 対策になりません</b>。暗号化は「鍵があれば元に戻せる」保管の守りで、学習に使う時点で中身は読める状態になります。個人を特定できないようにする匿名化・マスキングが別途必要です。",
+      ng: "残念、正解は <b>B：不十分</b> です。暗号化（SSE-S3 でも SSE-KMS でも）は保管時の保護であり、復号すれば個人情報はそのまま読めます。PII 対策としては、暗号化に加えて匿名化・マスキングによる加工が必要です。" },
+    { ok: "正解！ <b>匿名化は元に戻せない（不可逆）</b>加工で、<b>仮名化は対応表を使えば元の個人に戻せる</b>加工です。「戻せるかどうか」が2つの決定的な違いでした。",
+      ng: "残念、正解は <b>C</b> です。逆に覚えてしまいやすいペアですが、正しくは「匿名化 ＝ 戻せない」「仮名化 ＝ 対応表で戻せる」です。仮名化は戻せるからこそ、対応表の管理が重要になります。" }
+  ];
+
+  document.querySelectorAll('.quiz-block').forEach(function(block){
+    var qi = parseInt(block.getAttribute('data-quiz'), 10);
+    var feedback = block.querySelector('.feedback');
+    block.querySelectorAll('.choice').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        if (answered[qi]) return;
+        answered[qi] = true;
+        var isCorrect = btn.getAttribute('data-correct') === 'true';
+        if (isCorrect) correctCount++;
+        block.querySelectorAll('.choice').forEach(function(b){
+          b.disabled = true;
+          if (b.getAttribute('data-correct') === 'true') b.classList.add('correct');
+        });
+        if (!isCorrect) btn.classList.add('wrong');
+        feedback.innerHTML = (isCorrect ? '⭕ ' : '❌ ') + (isCorrect ? explanations[qi].ok : explanations[qi].ng);
+        feedback.classList.add('show', isCorrect ? 'ok' : 'ng');
+        updateScore();
+      });
+    });
+  });
+
+  function updateScore(){
+    var done = Object.keys(answered).length;
+    var scoreEl = document.getElementById('quizScore');
+    if (done === totalQ) {
+      scoreEl.innerHTML = correctCount === totalQ
+        ? '🎉 結果：<span class="big">' + correctCount + ' / ' + totalQ + ' 問正解</span> ― 完璧です。Glue Data Quality と Model Monitor の担当タイミング、Macie と Comprehend の使い分け、「暗号化 ≠ PII 対策」と匿名化・仮名化の違いまで押さえられました。'
+        : '結果：<span class="big">' + correctCount + ' / ' + totalQ + ' 問正解</span> ― 間違えたところは、サービス担当表と「間違えやすいポイント」の比較を見直してみてください。';
+      scoreEl.classList.add('show');
+    }
+  }
+})();
+</script>
+</body>
+</html>
