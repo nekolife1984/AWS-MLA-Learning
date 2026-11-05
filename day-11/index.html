@@ -1,0 +1,783 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="light dark" />
+<link rel="icon" href="data:," />
+<title>MLA解説 Day 11 — 教師あり学習と教師なし学習、分類・回帰・クラスタリングの選び方</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;800;900&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f6f7f9;
+    --surface:#ffffff;
+    --surface-2:#fff7ed;
+    --surface-3:#f1f5f9;
+    --ink:#0f172a;
+    --ink-2:#334155;
+    --muted:#64748b;
+    --line:#e2e8f0;
+    --line-strong:#cbd5e1;
+    --orange:#ea580c;
+    --orange-bright:#ff9900;
+    --orange-soft:#ffedd5;
+    --teal:#0f766e;
+    --teal-soft:#ccfbf1;
+    --navy:#13233f;
+    --navy-2:#1e3a5f;
+    --red:#b91c1c;
+    --red-soft:#fee2e2;
+    --green:#15803d;
+    --green-soft:#dcfce7;
+    --shadow:0 10px 30px rgba(15,23,42,.08);
+    --shadow-sm:0 2px 10px rgba(15,23,42,.06);
+    --radius:18px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0b1220;
+      --surface:#111c30;
+      --surface-2:#1c1a12;
+      --surface-3:#16233c;
+      --ink:#f1f5f9;
+      --ink-2:#cbd5e1;
+      --muted:#94a3b8;
+      --line:#24344f;
+      --line-strong:#334155;
+      --orange:#fb923c;
+      --orange-bright:#ff9900;
+      --orange-soft:#431407;
+      --teal:#2dd4bf;
+      --teal-soft:#042f2e;
+      --navy:#0f172a;
+      --navy-2:#1e293b;
+      --red:#fca5a5;
+      --red-soft:#450a0a;
+      --green:#86efac;
+      --green-soft:#052e16;
+      --shadow:0 10px 30px rgba(0,0,0,.35);
+      --shadow-sm:0 2px 10px rgba(0,0,0,.3);
+    }
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:"Noto Sans JP", system-ui, -apple-system, "Hiragino Kaku Gothic ProN", sans-serif;
+    line-height:1.75;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:var(--orange)}
+  .wrap{max-width:920px;margin:0 auto;padding:20px 18px 56px}
+
+  /* ---------- top meta ---------- */
+  .meta-row{
+    display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:6px 0 18px;
+  }
+  .pill{
+    display:inline-flex;align-items:center;gap:6px;
+    font-size:12.5px;font-weight:700;letter-spacing:.02em;
+    padding:5px 11px;border-radius:999px;border:1px solid var(--line);
+    background:var(--surface);color:var(--ink-2);
+  }
+  .pill.day{background:var(--navy);color:#fff;border-color:var(--navy)}
+  @media (prefers-color-scheme: dark){ .pill.day{background:var(--orange-bright);color:#111827;border-color:var(--orange-bright)} }
+  .pill .dot{width:7px;height:7px;border-radius:50%;background:var(--orange-bright);flex:none}
+  .mono{font-family:"IBM Plex Mono", ui-monospace, monospace}
+
+  /* ---------- hero ---------- */
+  .hero{
+    background:var(--navy);
+    color:#fff;
+    border-radius:24px;
+    padding:30px 28px 26px;
+    position:relative;
+    overflow:hidden;
+    box-shadow:var(--shadow);
+  }
+  .hero::after{
+    content:"";position:absolute;right:-70px;top:-70px;width:260px;height:260px;border-radius:50%;
+    border:44px solid rgba(255,153,0,.22);pointer-events:none;
+  }
+  .hero::before{
+    content:"";position:absolute;right:54px;bottom:-90px;width:160px;height:160px;border-radius:50%;
+    border:28px solid rgba(45,212,191,.14);pointer-events:none;
+  }
+  .hero-kicker{font-size:13px;font-weight:800;letter-spacing:.14em;color:#ffb25e;text-transform:uppercase;margin:0 0 8px;position:relative;z-index:1}
+  .hero h1{font-size:32px;line-height:1.3;font-weight:900;margin:0 0 12px;position:relative;z-index:1;letter-spacing:.01em}
+  .hero h1 .hl{color:var(--orange-bright)}
+  .hero p.lead{margin:0;color:#dbe6f3;font-size:15.5px;max-width:640px;position:relative;z-index:1}
+  .hero-tags{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px;position:relative;z-index:1}
+  .hero-tags span{font-size:12.5px;font-weight:700;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);color:#e2e8f0;padding:4px 10px;border-radius:999px}
+
+  .oneline{
+    margin-top:16px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+    padding:18px 20px;box-shadow:var(--shadow-sm);display:flex;gap:14px;align-items:flex-start;
+  }
+  .oneline .icon{
+    flex:none;width:42px;height:42px;border-radius:12px;background:var(--orange-soft);display:grid;place-items:center;font-size:21px;
+  }
+  .oneline h2{font-size:13px;letter-spacing:.08em;color:var(--orange);margin:0 0 4px;font-weight:800}
+  .oneline p{margin:0;font-size:16.5px;font-weight:700;line-height:1.6;color:var(--ink)}
+  .oneline p b{color:var(--orange)}
+
+  /* ---------- sections ---------- */
+  section{margin-top:36px}
+  .sec-head{display:flex;align-items:baseline;gap:12px;margin-bottom:6px;flex-wrap:wrap}
+  .sec-num{
+    font-family:"IBM Plex Mono",monospace;font-size:13px;font-weight:600;color:#fff;background:var(--orange);
+    width:28px;height:28px;border-radius:8px;display:inline-grid;place-items:center;flex:none;align-self:center;
+  }
+  .sec-head h2{font-size:22px;font-weight:900;margin:0;line-height:1.3}
+  .sec-sub{color:var(--muted);font-size:14px;margin:2px 0 16px 40px}
+  @media (max-width:560px){ .sec-sub{margin-left:0} }
+
+  /* ---------- step flow ---------- */
+  .flow{display:grid;grid-template-columns:1fr auto 1fr auto 1fr auto 1fr;align-items:stretch;gap:6px;margin:14px 0 18px}
+  .flow-step{
+    background:var(--surface);border:1.5px solid var(--line);border-radius:16px;padding:14px 12px;text-align:center;cursor:pointer;
+    transition:border-color .15s, background .15s, transform .15s;font-family:inherit;color:var(--ink);
+  }
+  .flow-step:hover{transform:translateY(-2px)}
+  .flow-step:focus-visible{outline:3px solid var(--orange-bright);outline-offset:2px}
+  .flow-step.active{border-color:var(--orange);background:var(--surface-2)}
+  .flow-step .step-emoji{font-size:24px;display:block;line-height:1.2}
+  .flow-step .step-no{font-family:"IBM Plex Mono",monospace;font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.08em}
+  .flow-step .step-name{font-weight:800;font-size:15px;display:block;margin-top:2px}
+  .flow-step .step-en{font-size:11.5px;color:var(--muted);display:block}
+  .flow-arrow{display:grid;place-items:center;color:var(--line-strong);font-size:18px;font-weight:900;pointer-events:none}
+  @media (max-width:640px){
+    .flow{grid-template-columns:1fr;gap:8px}
+    .flow-arrow{transform:rotate(90deg);padding:0;height:18px}
+    .flow-step{display:flex;align-items:center;gap:12px;text-align:left;padding:12px 14px}
+    .flow-step .step-emoji{font-size:22px}
+    .flow-step .step-meta{text-align:left}
+  }
+  .phase-panel{
+    background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:22px;box-shadow:var(--shadow-sm);
+  }
+  .phase-panel h3{margin:0 0 4px;font-size:19px;font-weight:900}
+  .phase-panel h3 .en{font-size:13px;color:var(--muted);font-weight:700;margin-left:8px;letter-spacing:.04em}
+  .phase-panel .phase-desc{color:var(--ink-2);font-size:14.5px;margin:0 0 16px}
+  .feat-list{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  @media (max-width:700px){ .feat-list{grid-template-columns:1fr} }
+  .feat{background:var(--surface-3);border-radius:14px;padding:14px 15px}
+  .feat .fname{font-weight:800;font-size:14.5px;margin:0 0 4px}
+  .feat .fname .mono{font-size:13px;color:var(--orange);display:block;font-weight:600}
+  .feat p{margin:0;font-size:13.5px;color:var(--ink-2);line-height:1.65}
+  .phase-tip{margin-top:14px;font-size:13.5px;background:var(--teal-soft);color:var(--ink);border-radius:12px;padding:11px 14px}
+  .phase-tip b{color:var(--teal)}
+
+  /* ---------- branch diagram ---------- */
+  .diagram{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:22px;box-shadow:var(--shadow-sm)}
+  .diagram .scenario{font-size:14.5px;color:var(--ink-2);margin:0 0 18px}
+  .diagram .scenario b{color:var(--ink)}
+  .diagram .conclusion{margin:18px 0 0;font-size:14.5px;color:var(--ink-2)}
+  .diagram .conclusion b{color:var(--orange)}
+  .tree-root{display:flex;justify-content:center}
+  .tree-q{
+    background:var(--navy);color:#fff;border-radius:14px;padding:13px 22px;text-align:center;
+    font-weight:900;font-size:16.5px;line-height:1.45;max-width:460px;box-shadow:var(--shadow-sm);
+  }
+  @media (prefers-color-scheme: dark){ .tree-q{background:var(--surface-3);color:var(--ink);border:1px solid var(--line-strong)} }
+  .tree-q .sub{display:block;font-size:12px;font-weight:700;color:#ffb25e;letter-spacing:.06em;margin-top:2px}
+  @media (prefers-color-scheme: dark){ .tree-q .sub{color:var(--orange-bright)} }
+  .tree-split{
+    display:flex;justify-content:center;gap:10px;margin:12px 0 10px;flex-wrap:wrap;
+  }
+  .split-tag{
+    font-size:12.5px;font-weight:800;padding:4px 12px;border-radius:999px;
+  }
+  .split-tag.yes{background:var(--teal-soft);color:var(--teal)}
+  .split-tag.no{background:var(--orange-soft);color:var(--orange)}
+  .tree-cols{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}
+  @media (max-width:700px){ .tree-cols{grid-template-columns:1fr} }
+  .branch{border:1.5px solid var(--line);border-radius:16px;padding:16px 17px;background:var(--surface-3)}
+  .branch.yes{border-color:var(--teal)}
+  .branch.no{border-color:var(--orange)}
+  .branch-head{display:flex;align-items:center;gap:10px;margin:0 0 4px;flex-wrap:wrap}
+  .yn{
+    flex:none;font-family:"IBM Plex Mono",monospace;font-size:12px;font-weight:600;color:#fff;
+    border-radius:999px;padding:3px 11px;letter-spacing:.05em;
+  }
+  .branch.yes .yn{background:var(--teal)}
+  .branch.no .yn{background:var(--orange)}
+  .branch-head h3{margin:0;font-size:17.5px;font-weight:900}
+  .branch-head h3 .en{font-size:12px;color:var(--muted);font-weight:700;margin-left:6px;letter-spacing:.04em}
+  .branch .branch-desc{margin:0 0 12px;font-size:13.5px;color:var(--ink-2)}
+  .branch-q{
+    font-size:13px;font-weight:800;color:var(--ink);background:var(--surface);border:1px dashed var(--line-strong);
+    border-radius:10px;padding:8px 12px;margin:0 0 12px;text-align:center;
+  }
+  .leaves{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  @media (max-width:480px){ .leaves{grid-template-columns:1fr} }
+  .leaf{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+  .leaf .lname{font-weight:900;font-size:15.5px;margin:0}
+  .leaf .lname .mono{font-size:11.5px;color:var(--orange);font-weight:600;display:block;letter-spacing:.04em}
+  .leaf p{margin:4px 0 0;font-size:13px;color:var(--ink-2);line-height:1.6}
+  .leaf p b{color:var(--ink)}
+  .tree-down{text-align:center;color:var(--line-strong);font-size:16px;font-weight:900;line-height:1;padding:2px 0}
+
+  /* ---------- compare table ---------- */
+  .metric-wrap{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow-sm)}
+  table.metric{border-collapse:collapse;width:100%;font-size:14px}
+  table.metric th,table.metric td{padding:14px 16px;text-align:left;vertical-align:top;line-height:1.65}
+  table.metric thead th{background:var(--navy);color:#fff;font-size:13.5px;letter-spacing:.04em;font-weight:800;border:none}
+  @media (prefers-color-scheme: dark){ table.metric thead th{background:var(--surface-3);color:var(--ink)} }
+  table.metric thead th .en{display:block;font-size:11px;font-weight:600;color:#ffb25e;letter-spacing:.05em}
+  @media (prefers-color-scheme: dark){ table.metric thead th .en{color:var(--orange-bright)} }
+  table.metric tbody tr{border-top:1px solid var(--line)}
+  table.metric tbody tr:first-child{border-top:none}
+  table.metric td{color:var(--ink-2)}
+  table.metric td.rowhead{white-space:nowrap}
+  table.metric .rname{font-weight:800;color:var(--ink);font-size:14.5px;display:block}
+  table.metric .rsub{font-size:11.5px;color:var(--muted);display:block;line-height:1.45}
+  table.metric td.hl-cell{background:var(--surface-2);font-weight:700;color:var(--ink)}
+  table.metric code{
+    font-family:"IBM Plex Mono",monospace;font-size:.86em;background:var(--surface-3);border:1px solid var(--line);
+    padding:1px 6px;border-radius:6px;color:var(--orange);font-weight:600;
+  }
+  @media (max-width:640px){
+    table.metric,table.metric tbody,table.metric tr,table.metric td{display:block;width:100%}
+    table.metric thead{display:none}
+    table.metric tbody tr{padding:14px 16px 6px}
+    table.metric td{padding:0 0 10px;border:none}
+    table.metric td::before{
+      content:attr(data-label);display:block;font-size:11px;font-weight:800;letter-spacing:.08em;color:var(--muted);margin-bottom:2px;
+    }
+    table.metric td.rowhead{white-space:normal}
+    table.metric td.rowhead::before{content:""}
+  }
+  .table-note{font-size:13.5px;color:var(--ink-2);background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:11px 15px;margin-top:12px}
+  .table-note b{color:var(--orange)}
+
+  /* ---------- exam points ---------- */
+  .exam-list{display:flex;flex-direction:column;gap:12px}
+  .exam-item{
+    display:flex;gap:14px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;box-shadow:var(--shadow-sm);
+  }
+  .exam-item .badge{
+    flex:none;width:34px;height:34px;border-radius:50%;background:var(--navy);color:#fff;font-weight:800;font-size:15px;display:grid;place-items:center;margin-top:2px;
+  }
+  @media (prefers-color-scheme: dark){ .exam-item .badge{background:var(--orange-bright);color:#111827} }
+  .exam-item h3{margin:0 0 4px;font-size:16px;font-weight:800}
+  .exam-item p{margin:0;font-size:14.5px;color:var(--ink-2)}
+  .exam-item code,.feat code,.compare code{
+    font-family:"IBM Plex Mono",monospace;font-size:.88em;background:var(--surface-3);border:1px solid var(--line);
+    padding:1px 6px;border-radius:6px;color:var(--orange);font-weight:600;white-space:nowrap;
+  }
+
+  /* ---------- compare ---------- */
+  .compare{display:flex;flex-direction:column;gap:14px}
+  .compare-row{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow-sm)}
+  .compare-vs{display:grid;grid-template-columns:1fr auto 1fr}
+  @media (max-width:640px){ .compare-vs{grid-template-columns:1fr} .vs-badge{margin:0 auto} }
+  .compare-cell{padding:18px 20px}
+  .compare-cell.a{background:var(--surface-2)}
+  .compare-cell h3{margin:0 0 5px;font-size:16.5px;font-weight:900}
+  .compare-cell p{margin:0;font-size:14px;color:var(--ink-2)}
+  .vs-badge{align-self:center;width:38px;height:38px;border-radius:50%;background:var(--ink);color:var(--bg);font-weight:900;font-size:12px;display:grid;place-items:center;letter-spacing:.05em;z-index:1;margin:0 -6px}
+  .compare-note{padding:12px 20px;border-top:1px dashed var(--line-strong);font-size:13.5px;color:var(--ink-2);background:var(--surface)}
+  .compare-note b{color:var(--orange)}
+
+  /* ---------- quiz ---------- */
+  .quiz{
+    background:var(--navy);color:#fff;border-radius:24px;padding:26px 24px;box-shadow:var(--shadow);position:relative;overflow:hidden;
+  }
+  .quiz::after{content:"?";position:absolute;right:14px;top:-28px;font-size:150px;font-weight:900;color:rgba(255,255,255,.06);line-height:1;pointer-events:none}
+  .quiz .q-label{font-size:12.5px;font-weight:800;letter-spacing:.12em;color:#ffb25e;margin:0 0 8px}
+  .quiz h2{font-size:20px;font-weight:900;margin:0 0 6px;line-height:1.45}
+  .quiz .q-sub{color:#cbd5e1;font-size:13.5px;margin:0 0 18px}
+  .quiz-block{margin-bottom:22px;position:relative;z-index:1}
+  .quiz-block:last-of-type{margin-bottom:0}
+  .quiz-q{font-weight:700;font-size:15.5px;margin:0 0 12px;line-height:1.65}
+  .quiz-q .qno{color:var(--orange-bright);font-family:"IBM Plex Mono",monospace;margin-right:6px}
+  .choices{display:flex;flex-direction:column;gap:9px}
+  .choice{
+    text-align:left;font-family:inherit;font-size:14.5px;font-weight:600;color:#e2e8f0;
+    background:rgba(255,255,255,.07);border:1.5px solid rgba(255,255,255,.22);border-radius:12px;
+    padding:12px 15px;cursor:pointer;display:flex;gap:10px;align-items:flex-start;line-height:1.55;
+  }
+  .choice:hover{border-color:var(--orange-bright)}
+  .choice:focus-visible{outline:3px solid var(--orange-bright);outline-offset:2px}
+  .choice .letter{flex:none;width:24px;height:24px;border-radius:7px;background:rgba(255,255,255,.14);display:grid;place-items:center;font-size:13px;font-weight:800;margin-top:1px}
+  .choice.correct{border-color:#4ade80;background:rgba(74,222,128,.16);color:#fff}
+  .choice.correct .letter{background:#22c55e;color:#fff}
+  .choice.wrong{border-color:#f87171;background:rgba(248,113,113,.14)}
+  .choice.wrong .letter{background:#dc2626;color:#fff}
+  .choice:disabled{cursor:default;opacity:.92}
+  .feedback{display:none;margin-top:12px;border-radius:12px;padding:12px 15px;font-size:14px;line-height:1.65}
+  .feedback.show{display:block}
+  .feedback.ok{background:rgba(74,222,128,.15);border:1px solid rgba(74,222,128,.4)}
+  .feedback.ng{background:rgba(248,113,113,.13);border:1px solid rgba(248,113,113,.4)}
+  .feedback b{color:#fff}
+  .quiz-score{margin-top:18px;font-size:14px;font-weight:700;color:#e2e8f0;display:none;position:relative;z-index:1}
+  .quiz-score.show{display:block}
+  .quiz-score .big{color:var(--orange-bright);font-size:18px}
+
+  /* ---------- next / footer ---------- */
+  .next-card{
+    margin-top:36px;display:flex;gap:16px;align-items:center;background:var(--surface);border:1.5px dashed var(--line-strong);
+    border-radius:var(--radius);padding:20px 22px;
+  }
+  .next-card .n-emoji{font-size:32px;flex:none}
+  .next-card h2{margin:0 0 2px;font-size:16.5px;font-weight:900}
+  .next-card p{margin:0;font-size:14px;color:var(--muted)}
+  .next-card .next-badge{margin-left:auto;flex:none;font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:13px;color:var(--orange);border:1px solid var(--orange);border-radius:999px;padding:5px 12px;white-space:nowrap}
+  @media (max-width:560px){ .next-card{flex-wrap:wrap} .next-card .next-badge{margin-left:0} }
+  footer{margin-top:28px;text-align:center;color:var(--muted);font-size:12.5px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="meta-row" aria-label="メタ情報">
+    <span class="pill day">DAY 11 / 84</span>
+    <span class="pill"><span class="dot"></span>AWS MLA-C01 対策</span>
+    <span class="pill">⏱ 読了目安 約5分</span>
+    <span class="pill mono">2026.11.06 FRI</span>
+  </div>
+
+  <header class="hero">
+    <p class="hero-kicker">Machine Learning — Lesson 11</p>
+    <h1>教師あり学習と教師なし学習、<br><span class="hl">分類・回帰・クラスタリング</span>の選び方</h1>
+    <p class="lead">機械学習の手法選びは、アルゴリズムの名前から入ると迷子になります。決め手は「正解ラベルがあるか」と「出力がどんな形か」の2つだけ。今日はこの判断軸で、分類・回帰・クラスタリングを使い分けられるようになる回です。</p>
+    <div class="hero-tags">
+      <span># 教師あり学習</span><span># 教師なし学習</span><span># 分類 / 回帰</span><span># クラスタリング（K-Means）</span>
+    </div>
+  </header>
+
+  <div class="oneline">
+    <div class="icon" aria-hidden="true">🧭</div>
+    <div>
+      <h2>一言で言うと</h2>
+      <p><b>答え（正解ラベル）がある</b>データで学ぶのが教師あり学習、<b>答えがなく</b>データの構造自体を見つけるのが教師なし学習です。何をしたいかで手法が決まります。</p>
+    </div>
+  </div>
+
+  <!-- 01 steps -->
+  <section aria-labelledby="sec1">
+    <div class="sec-head"><span class="sec-num">01</span><h2 id="sec1">手法を選ぶ4ステップ</h2></div>
+    <p class="sec-sub">ステップをタップすると、各ステップで何を判断するかが切り替わります。「目的 → ラベル → 出力の形 → アルゴリズム」の順に考えるのが、迷わないための型です。</p>
+
+    <div class="flow" role="tablist" aria-label="手法を選ぶ4ステップ">
+      <button class="flow-step active" role="tab" aria-selected="true" data-phase="0" id="tab-0">
+        <span class="step-emoji" aria-hidden="true">🎯</span>
+        <span class="step-meta"><span class="step-no">STEP 1</span><span class="step-name">目的を決める</span><span class="step-en">Goal</span></span>
+      </button>
+      <span class="flow-arrow" aria-hidden="true">›</span>
+      <button class="flow-step" role="tab" aria-selected="false" data-phase="1" id="tab-1">
+        <span class="step-emoji" aria-hidden="true">🏷️</span>
+        <span class="step-meta"><span class="step-no">STEP 2</span><span class="step-name">ラベル確認</span><span class="step-en">Label</span></span>
+      </button>
+      <span class="flow-arrow" aria-hidden="true">›</span>
+      <button class="flow-step" role="tab" aria-selected="false" data-phase="2" id="tab-2">
+        <span class="step-emoji" aria-hidden="true">📤</span>
+        <span class="step-meta"><span class="step-no">STEP 3</span><span class="step-name">出力の形</span><span class="step-en">Output</span></span>
+      </button>
+      <span class="flow-arrow" aria-hidden="true">›</span>
+      <button class="flow-step" role="tab" aria-selected="false" data-phase="3" id="tab-3">
+        <span class="step-emoji" aria-hidden="true">⚙️</span>
+        <span class="step-meta"><span class="step-no">STEP 4</span><span class="step-name">アルゴリズム</span><span class="step-en">Algorithm</span></span>
+      </button>
+    </div>
+
+    <div class="phase-panel" role="tabpanel" aria-live="polite" id="phasePanel">
+      <!-- JSで差し替え -->
+    </div>
+  </section>
+
+  <!-- 02 branch diagram -->
+  <section aria-labelledby="sec2">
+    <div class="sec-head"><span class="sec-num">02</span><h2 id="sec2">図解：分岐図で選ぶ</h2></div>
+    <p class="sec-sub">手法選びは、たった2つの質問に答えるだけです。「正解ラベルはある？」→「出力の形は？」の順にたどると、行き先は自動的に決まります。</p>
+
+    <div class="diagram">
+      <p class="scenario">例：手元にあるデータで何か始めたいとき、まず聞くべきは「そのデータに<b>正解ラベル</b>が付いているか」です。ここから分岐が始まります。</p>
+
+      <div class="tree-root">
+        <div class="tree-q">正解ラベルはある？<span class="sub">QUESTION 1 — LABEL</span></div>
+      </div>
+      <div class="tree-split" aria-hidden="true">
+        <span class="split-tag yes">▼ Yes ― ラベルあり</span>
+        <span class="split-tag no">▼ No ― ラベルなし</span>
+      </div>
+
+      <div class="tree-cols">
+        <div class="branch yes">
+          <div class="branch-head">
+            <span class="yn">YES</span>
+            <h3>教師あり学習<span class="en">SUPERVISED</span></h3>
+          </div>
+          <p class="branch-desc">入力と正解（ラベル）のペアから学び、未知のデータに対する答えを予測する学習です。次に「出力の形」で2つに分かれます。</p>
+          <p class="branch-q">質問2：出力の形は？ ― カテゴリか、数値か</p>
+          <div class="leaves">
+            <div class="leaf">
+              <p class="lname"><span class="mono">CLASSIFICATION</span>分類</p>
+              <p>出力が<b>カテゴリ</b>のとき。例：<b>スパム判定</b>（スパム／通常）、<b>画像の犬・猫判定</b></p>
+            </div>
+            <div class="leaf">
+              <p class="lname"><span class="mono">REGRESSION</span>回帰</p>
+              <p>出力が<b>連続した数値</b>のとき。例：<b>住宅価格予測</b>、<b>売上予測</b></p>
+            </div>
+          </div>
+        </div>
+
+        <div class="branch no">
+          <div class="branch-head">
+            <span class="yn">NO</span>
+            <h3>教師なし学習<span class="en">UNSUPERVISED</span></h3>
+          </div>
+          <p class="branch-desc">正解がないデータから、データ自身の構造や傾向を見つける学習です。「答えを当てる」のではなく「まとまりを発見する」のが仕事です。</p>
+          <p class="branch-q">似たものを集めたい？ ― それならこれ</p>
+          <div class="leaf">
+            <p class="lname"><span class="mono">CLUSTERING</span>クラスタリング</p>
+            <p>似たデータ同士を<b>グループ（クラスタ）</b>に分ける手法。例：<b>顧客セグメント分け</b>（購買傾向で顧客をグループ化）</p>
+          </div>
+        </div>
+      </div>
+
+      <p class="conclusion">つまり判断は2段階だけです。<b>ラベルの有無</b>で教師あり／教師なしが決まり、教師ありなら<b>出力の形</b>で分類／回帰が決まります。この分岐図が頭に入っていれば、問題文を読むだけで候補が絞れます。</p>
+    </div>
+  </section>
+
+  <!-- 03 compare table -->
+  <section aria-labelledby="sec3">
+    <div class="sec-head"><span class="sec-num">03</span><h2 id="sec3">3つの手法の比較表</h2></div>
+    <p class="sec-sub">分類・回帰・クラスタリングを、試験で問われる観点で並べました。とくに「評価指標」の行は、手法との対応そのものが出題されます。</p>
+
+    <div class="metric-wrap">
+      <table class="metric">
+        <thead>
+          <tr>
+            <th scope="col">観点</th>
+            <th scope="col">分類<span class="en">CLASSIFICATION</span></th>
+            <th scope="col">回帰<span class="en">REGRESSION</span></th>
+            <th scope="col">クラスタリング<span class="en">CLUSTERING</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="rowhead" data-label=""><span class="rname">学習の種類</span><span class="rsub">Supervised / Unsupervised</span></td>
+            <td data-label="分類">教師あり学習</td>
+            <td data-label="回帰">教師あり学習</td>
+            <td data-label="クラスタリング" class="hl-cell">教師なし学習</td>
+          </tr>
+          <tr>
+            <td class="rowhead" data-label=""><span class="rname">出力</span><span class="rsub">Output</span></td>
+            <td data-label="分類">カテゴリ（クラス）</td>
+            <td data-label="回帰">連続値（数値）</td>
+            <td data-label="クラスタリング">グループ（クラスタ）</td>
+          </tr>
+          <tr>
+            <td class="rowhead" data-label=""><span class="rname">ラベルの要否</span><span class="rsub">Label required?</span></td>
+            <td data-label="分類">必要</td>
+            <td data-label="回帰">必要</td>
+            <td data-label="クラスタリング" class="hl-cell">不要</td>
+          </tr>
+          <tr>
+            <td class="rowhead" data-label=""><span class="rname">代表アルゴリズム</span><span class="rsub">SageMaker built-in</span></td>
+            <td data-label="分類"><code>XGBoost</code>、<code>Linear Learner</code></td>
+            <td data-label="回帰"><code>XGBoost</code>、<code>Linear Learner</code></td>
+            <td data-label="クラスタリング"><code>K-Means</code></td>
+          </tr>
+          <tr>
+            <td class="rowhead" data-label=""><span class="rname">評価指標</span><span class="rsub">Metrics</span></td>
+            <td data-label="分類">Accuracy、F1、AUC</td>
+            <td data-label="回帰">RMSE、MAE</td>
+            <td data-label="クラスタリング">シルエット係数</td>
+          </tr>
+          <tr>
+            <td class="rowhead" data-label=""><span class="rname">具体例</span><span class="rsub">Examples</span></td>
+            <td data-label="分類">スパム判定、画像の犬・猫判定</td>
+            <td data-label="回帰">住宅価格予測、売上予測</td>
+            <td data-label="クラスタリング">顧客セグメント分け</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="table-note">🔑 覚え方：<b>分類と回帰は「教師あり」でペア、クラスタリングだけが「教師なし」</b>。XGBoost と Linear Learner は分類・回帰の両対応、K-Means はクラスタリング専用です。</p>
+  </section>
+
+  <!-- 04 exam -->
+  <section aria-labelledby="sec4">
+    <div class="sec-head"><span class="sec-num">04</span><h2 id="sec4">試験で問われるポイント</h2></div>
+    <p class="sec-sub">MLA-C01 では、シナリオ文から「どの手法か」を選ばせる問題が定番です。判断の型を3つ押さえましょう。</p>
+    <div class="exam-list">
+      <div class="exam-item">
+        <div class="badge">1</div>
+        <div>
+          <h3>分類と回帰の見分け方は「出力がカテゴリか数値か」</h3>
+          <p>スパム判定は「スパム／通常」というカテゴリを出すので<b>分類</b>、住宅価格予測は金額という数値を出すので<b>回帰</b>です。問題文のシナリオが何を出力するかだけを見れば判別できます。アルゴリズム名に引っ張られないことが大切です。</p>
+        </div>
+      </div>
+      <div class="exam-item">
+        <div class="badge">2</div>
+        <div>
+          <h3>クラスタリングは教師なし学習で、ラベルは不要</h3>
+          <p>クラスタリングは正解ラベルを使わず、データの類似性だけでグループを作ります。SageMaker の <code>K-Means</code> は教師なし学習のアルゴリズムです。「ラベルなしで顧客をグループ分けしたい」というシナリオは、そのまま K-Means が答えになります。</p>
+        </div>
+      </div>
+      <div class="exam-item">
+        <div class="badge">3</div>
+        <div>
+          <h3>絞り込みは「教師ありか教師なしか」→「分類か回帰か」の順</h3>
+          <p>まずラベルの有無で大きく分け、教師ありなら次に出力の形で分類／回帰を決める。この順番が手法選択の型です。なお <code>XGBoost</code> は分類・回帰の<b>両方に使える</b>ため、どちらのシナリオでも候補に入ります。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 05 compare -->
+  <section aria-labelledby="sec5">
+    <div class="sec-head"><span class="sec-num">05</span><h2 id="sec5">間違えやすい！混同しやすいポイント</h2></div>
+    <p class="sec-sub">似た言葉同士の取り違えが狙われます。「確率を出したら回帰？」「グループ分けは分類？」といった迷いをここで潰しておきましょう。</p>
+    <div class="compare">
+      <div class="compare-row">
+        <div class="compare-vs">
+          <div class="compare-cell a">
+            <h3>分類</h3>
+            <p>出力は<b>カテゴリ</b>。「スパムである確率 0.87」のように確率を出すモデルでも、最終的に<b>どのカテゴリに割り振るか</b>が仕事なら分類です。</p>
+          </div>
+          <div class="vs-badge" aria-hidden="true">VS</div>
+          <div class="compare-cell">
+            <h3>回帰</h3>
+            <p>出力は<b>連続した数値そのもの</b>。住宅価格や売上のように、値の大きさ自体が答えになります。</p>
+          </div>
+        </div>
+        <div class="compare-note">🔑 見分け方：途中経過で確率（数値）を出していても、<b>最終的にカテゴリへ割り振るなら分類</b>です。「最後に何が出るか」で判断します。</div>
+      </div>
+
+      <div class="compare-row">
+        <div class="compare-vs">
+          <div class="compare-cell a">
+            <h3>クラスタリング</h3>
+            <p><b>正解ラベルなし</b>で、データの類似性からグループを<b>新しく作る</b>。グループの意味づけは、人間が結果を見て後から行います。</p>
+          </div>
+          <div class="vs-badge" aria-hidden="true">VS</div>
+          <div class="compare-cell">
+            <h3>分類</h3>
+            <p><b>ラベルあり</b>で学習し、新しいデータを<b>既存のカテゴリに割り振る</b>。カテゴリの定義は最初から決まっています。</p>
+          </div>
+        </div>
+        <div class="compare-note">🔑 見分け方：「グループを作る」のがクラスタリング、「既存のグループに入れる」のが分類。評価に <b>Accuracy が使えないのはクラスタリング</b>（正解ラベルがないため）です。</div>
+      </div>
+
+      <div class="compare-row">
+        <div class="compare-vs">
+          <div class="compare-cell a">
+            <h3>教師あり学習</h3>
+            <p>学習データの<b>すべてにラベルが付いている</b>前提。ラベルが多いほど学びやすい反面、ラベル付けの手間とコストがかかります。</p>
+          </div>
+          <div class="vs-badge" aria-hidden="true">VS</div>
+          <div class="compare-cell">
+            <h3>半教師あり学習</h3>
+            <p><b>ラベル付き少量＋ラベルなし大量</b>を組み合わせて学ぶ方法。ラベルなしデータの構造も手がかりに使います。</p>
+          </div>
+        </div>
+        <div class="compare-note">🔑 見分け方：問題文に「ラベル付きデータは少ししかない」「<b>ラベル付けのコストを下げたい</b>」とあれば、半教師あり学習が候補に上がるシナリオです。</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- quiz -->
+  <section aria-labelledby="quizTitle">
+    <div class="quiz">
+      <p class="q-label">CHECK QUIZ — 確認クイズ</p>
+      <h2 id="quizTitle">今日の理解度チェック（全4問）</h2>
+      <p class="q-sub">選択肢をタップすると、その場で答え合わせができます。</p>
+
+      <div class="quiz-block" data-quiz="0">
+        <p class="quiz-q"><span class="qno">Q1.</span>メールのスパム判定は、分類と回帰のどちらか？</p>
+        <div class="choices">
+          <button class="choice" data-correct="false"><span class="letter">A</span><span>回帰 ― スパムらしさを数値で予測するから</span></button>
+          <button class="choice" data-correct="true"><span class="letter">B</span><span>分類 ― 「スパム／通常」というカテゴリに割り振るから</span></button>
+          <button class="choice" data-correct="false"><span class="letter">C</span><span>クラスタリング ― 似たメールをグループ化するから</span></button>
+          <button class="choice" data-correct="false"><span class="letter">D</span><span>どちらでもない ― ラベルなしで学ぶ教師なし学習だから</span></button>
+        </div>
+        <div class="feedback" role="status"></div>
+      </div>
+
+      <div class="quiz-block" data-quiz="1">
+        <p class="quiz-q"><span class="qno">Q2.</span>住宅価格の予測は、分類と回帰のどちらか？</p>
+        <div class="choices">
+          <button class="choice" data-correct="false"><span class="letter">A</span><span>分類 ― 「高い／安い」のカテゴリに分けるから</span></button>
+          <button class="choice" data-correct="true"><span class="letter">B</span><span>回帰 ― 価格という連続した数値を予測するから</span></button>
+          <button class="choice" data-correct="false"><span class="letter">C</span><span>クラスタリング ― 似た住宅をグループ化するから</span></button>
+          <button class="choice" data-correct="false"><span class="letter">D</span><span>分類 ― 価格帯ごとにクラスが決まっているから</span></button>
+        </div>
+        <div class="feedback" role="status"></div>
+      </div>
+
+      <div class="quiz-block" data-quiz="2">
+        <p class="quiz-q"><span class="qno">Q3.</span>正解ラベルがない顧客データを、購買傾向でグループ分けしたい。適切な手法はどれか？</p>
+        <div class="choices">
+          <button class="choice" data-correct="false"><span class="letter">A</span><span>教師あり学習の分類（XGBoost）</span></button>
+          <button class="choice" data-correct="true"><span class="letter">B</span><span>教師なし学習のクラスタリング（K-Means など）</span></button>
+          <button class="choice" data-correct="false"><span class="letter">C</span><span>教師あり学習の回帰（Linear Learner）</span></button>
+          <button class="choice" data-correct="false"><span class="letter">D</span><span>半教師あり学習 ― まず全データにラベルを付けてから分類する</span></button>
+        </div>
+        <div class="feedback" role="status"></div>
+      </div>
+
+      <div class="quiz-block" data-quiz="3">
+        <p class="quiz-q"><span class="qno">Q4.</span>クラスタリングの評価に Accuracy が使えないのはなぜか？</p>
+        <div class="choices">
+          <button class="choice" data-correct="false"><span class="letter">A</span><span>計算コストが高すぎるから</span></button>
+          <button class="choice" data-correct="false"><span class="letter">B</span><span>グループの数が多すぎるから</span></button>
+          <button class="choice" data-correct="true"><span class="letter">C</span><span>正解ラベルがないため、予測と答えを比べられないから</span></button>
+          <button class="choice" data-correct="false"><span class="letter">D</span><span>SageMaker が Accuracy の計算に対応していないから</span></button>
+        </div>
+        <div class="feedback" role="status"></div>
+      </div>
+
+      <p class="quiz-score" id="quizScore"></p>
+    </div>
+  </section>
+
+  <div class="next-card">
+    <div class="n-emoji" aria-hidden="true">🧰</div>
+    <div>
+      <h2>明日は Day 12：SageMaker の組み込みアルゴリズムの選び方</h2>
+      <p>今日は「手法」の選び方を押さえました。次回はその先、SageMaker が用意する組み込みアルゴリズムを、用途ごとにどう選ぶかを掘り下げます。</p>
+    </div>
+    <span class="next-badge">DAY 12 →</span>
+  </div>
+
+  <footer>
+    <p>MLA毎日解説 ― Day 11 ｜ 教師あり学習と教師なし学習、分類・回帰・クラスタリングの選び方</p>
+  </footer>
+
+</div>
+
+<script>
+(function(){
+  var phases = [
+    {
+      title: "何を知りたいか決める",
+      en: "STEP 1 — GOAL",
+      desc: "すべての出発点は「何をしたいか」です。将来や未知の答えを予測したいのか、データの中にあるグループを見つけたいのかで、進む方向が変わります。",
+      feats: [
+        { name: "予測したい", en: "Predict", text: "過去のデータから、未知のデータへの答えを当てたいケース。「このメールはスパムか」「来月の売上はいくらか」など、答えを出すこと自体が目的です。" },
+        { name: "グループ分けしたい", en: "Group", text: "データを似たもの同士で分けたいケース。「顧客を購買傾向で分けたい」など、あらかじめ決まった正解はなく、構造の発見が目的です。" },
+        { name: "目的が先、手法は後", en: "Goal First", text: "アルゴリズムの名前から選ぶのは順番が逆です。目的が決まれば、必要な学習の種類と出力の形は自然と絞られていきます。" }
+      ],
+      tip: "試験ヒント：問題文の「〜したい」という目的の文が、そのまま手法選びの出発点です。まず目的を抜き出して読みましょう。"
+    },
+    {
+      title: "正解ラベルはあるか",
+      en: "STEP 2 — LABEL",
+      desc: "手元のデータに正解（ラベル）が付いているかどうかが、教師あり学習と教師なし学習の分かれ道です。ここが手法選び最大の分岐点です。",
+      feats: [
+        { name: "ある → 教師あり学習", en: "Supervised", text: "入力と正解ラベルのペアで学ぶ方法です。「スパム／通常」と判定済みのメール集のように、正解付きデータが用意できれば教師あり学習が使えます。" },
+        { name: "ない → 教師なし学習", en: "Unsupervised", text: "正解のないデータから、似ている・傾向が違うといった構造自体を見つける方法です。答え合わせではなく、データの地図を描くイメージです。" },
+        { name: "ラベルにはコストがかかる", en: "Labeling Cost", text: "ラベル付けは人手と時間のかかる作業です。ラベルが用意できない・作るコストが見合わない、という事情も手法選びの立派な判断材料になります。" }
+      ],
+      tip: "試験ヒント：「ラベル付きデータがある」と書かれていれば教師あり、「ラベルはないがグループ分けしたい」なら教師なし、と機械的に判断できます。"
+    },
+    {
+      title: "出力の形を見る",
+      en: "STEP 3 — OUTPUT",
+      desc: "教師あり学習なら、モデルが出す答えの形で分類か回帰かが決まります。教師なしで似たものを集めるならクラスタリングです。",
+      feats: [
+        { name: "カテゴリ → 分類", en: "Classification", text: "答えが「スパム／通常」「犬／猫」のような離れた選択肢（クラス）のとき。確率を出しても、最後にカテゴリへ割り振るなら分類です。" },
+        { name: "数値 → 回帰", en: "Regression", text: "答えが住宅価格・売上・温度のような連続した数値のとき。どれだけ外れたかを RMSE や MAE で測ります。" },
+        { name: "グループ → クラスタリング", en: "Clustering", text: "欲しい答えが「似たものの集まり（クラスタ）」そのものというとき。正解ラベルは使わず、データの類似性だけで分けます。" }
+      ],
+      tip: "試験ヒント：分類か回帰か迷ったら、「出力がカテゴリか数値か」だけ見ればOKです。問題文のシナリオの「答え」に注目しましょう。"
+    },
+    {
+      title: "アルゴリズムを選ぶ",
+      en: "STEP 4 — ALGORITHM",
+      desc: "学習の種類と出力の形が決まれば、SageMaker の組み込みアルゴリズムは自然に絞り込めます。最後の仕上げのステップです。",
+      feats: [
+        { name: "XGBoost", en: "XGBoost", text: "分類・回帰の両方に使える、表形式データの代表格です。教師あり学習で高精度が求められる場面の第一候補になります。" },
+        { name: "Linear Learner", en: "Linear Learner", text: "こちらも分類・回帰の両対応。線形モデルでシンプルかつ高速なため、ベースライン作りや単純な関係の学習に向きます。" },
+        { name: "K-Means", en: "K-Means", text: "クラスタリング専用の教師なしアルゴリズムです。似たデータを指定した K 個のグループに分けます。教師ありでは使わない点に注意。" }
+      ],
+      tip: "試験ヒント：K-Means は教師なし、XGBoost と Linear Learner は分類・回帰の両対応。この対応関係が選択肢の絞り込みにそのまま効きます。"
+    }
+  ];
+
+  var panel = document.getElementById('phasePanel');
+  var tabs = Array.prototype.slice.call(document.querySelectorAll('.flow-step'));
+
+  function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
+
+  function renderPhase(i){
+    var p = phases[i];
+    var featsHtml = p.feats.map(function(f){
+      return '<div class="feat"><p class="fname"><span class="mono">' + esc(f.en) + '</span>' + esc(f.name) + '</p><p>' + esc(f.text) + '</p></div>';
+    }).join('');
+    panel.innerHTML =
+      '<h3>' + esc(p.title) + '<span class="en">' + esc(p.en) + '</span></h3>' +
+      '<p class="phase-desc">' + esc(p.desc) + '</p>' +
+      '<div class="feat-list">' + featsHtml + '</div>' +
+      '<p class="phase-tip"><b>🎯 </b>' + esc(p.tip) + '</p>';
+    tabs.forEach(function(t, idx){
+      var on = idx === i;
+      t.classList.toggle('active', on);
+      t.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+  }
+
+  tabs.forEach(function(t){
+    t.addEventListener('click', function(){ renderPhase(parseInt(t.getAttribute('data-phase'), 10)); });
+  });
+  renderPhase(0);
+
+  /* quiz */
+  var totalQ = document.querySelectorAll('.quiz-block').length;
+  var answered = {};
+  var correctCount = 0;
+
+  var explanations = [
+    { ok: "正解！ スパム判定の出力は「スパム／通常」という<b>カテゴリ</b>なので<b>分類</b>です。途中で確率のような数値を出していても、最終的にカテゴリへ割り振るなら分類でした。",
+      ng: "残念、正解は <b>B：分類</b> です。スパム判定は「スパム／通常」というカテゴリを出力します。回帰は価格のような連続値を出す手法、クラスタリングはラベルなしでグループを作る手法です。" },
+    { ok: "正解！ 住宅価格は金額という<b>連続した数値</b>なので<b>回帰</b>です。「出力が数値なら回帰、カテゴリなら分類」という見分け方がそのまま使えました。",
+      ng: "残念、正解は <b>B：回帰</b> です。住宅価格の予測で出すのは「3,800万円」のような連続した数値そのもの。カテゴリに分ける分類ではなく、数値を当てる回帰が適切です。" },
+    { ok: "正解！ 正解ラベルがないので<b>教師なし学習</b>、似た顧客を集めるなら<b>クラスタリング</b>です。SageMaker の代表アルゴリズムは <b>K-Means</b> でした。",
+      ng: "残念、正解は <b>B：教師なし学習のクラスタリング（K-Means など）</b> です。分類も回帰も正解ラベルが必要な教師あり学習なので、ラベルがないこのケースでは使えません。ラベルなしでグループを作るのがクラスタリングです。" },
+    { ok: "正解！ Accuracy は「予測と<b>正解ラベル</b>の一致率」を測る指標です。クラスタリングには正解ラベルがないため、比べる相手がおらず使えません。代わりにシルエット係数などでグループのまとまり具合を評価します。",
+      ng: "残念、正解は <b>C</b> です。Accuracy は予測と正解ラベルの一致率ですが、クラスタリングは正解ラベルなしでグループを作る手法なので、照合する「答え」が存在しません。計算コストやグループ数は理由ではありません。" }
+  ];
+
+  document.querySelectorAll('.quiz-block').forEach(function(block){
+    var qi = parseInt(block.getAttribute('data-quiz'), 10);
+    var feedback = block.querySelector('.feedback');
+    block.querySelectorAll('.choice').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        if (answered[qi]) return;
+        answered[qi] = true;
+        var isCorrect = btn.getAttribute('data-correct') === 'true';
+        if (isCorrect) correctCount++;
+        block.querySelectorAll('.choice').forEach(function(b){
+          b.disabled = true;
+          if (b.getAttribute('data-correct') === 'true') b.classList.add('correct');
+        });
+        if (!isCorrect) btn.classList.add('wrong');
+        feedback.innerHTML = (isCorrect ? '⭕ ' : '❌ ') + (isCorrect ? explanations[qi].ok : explanations[qi].ng);
+        feedback.classList.add('show', isCorrect ? 'ok' : 'ng');
+        updateScore();
+      });
+    });
+  });
+
+  function updateScore(){
+    var done = Object.keys(answered).length;
+    var scoreEl = document.getElementById('quizScore');
+    if (done === totalQ) {
+      scoreEl.innerHTML = correctCount === totalQ
+        ? '🎉 結果：<span class="big">' + correctCount + ' / ' + totalQ + ' 問正解</span> ― 完璧です。「ラベルの有無 → 出力の形」の順で手法を絞る型と、クラスタリングに Accuracy が使えない理由まで押さえられました。'
+        : '結果：<span class="big">' + correctCount + ' / ' + totalQ + ' 問正解</span> ― 間違えたところは、分岐図と比較表、それに「間違えやすいポイント」の比較を見直してみてください。';
+      scoreEl.classList.add('show');
+    }
+  }
+})();
+</script>
+</body>
+</html>
