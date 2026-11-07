@@ -24,7 +24,7 @@ https://nekolife1984.github.io/AWS-MLA-Learning/
 | Day 10 | データ品質の検証と暗号化・匿名化（PII対応） | [day-10](day-10/) |
 | Day 11 | 教師あり学習と教師なし学習、分類・回帰・クラスタリングの選び方 | [day-11](day-11/) |
 | Day 12 | SageMaker の組み込みアルゴリズムの選び方 | [day-12](day-12/) |
-| Day 13 | SageMaker Training Jobs と分散学習 | 準備中 |
+| Day 13 | SageMaker Training Jobs と分散学習 | [day-13](day-13/) |
 | Day 14 | SageMaker Autopilot と JumpStart | 準備中 |
 | Day 15 | ハイパーパラメータチューニング（Automatic Model Tuning） | 準備中 |
 | Day 16 | 評価指標（Accuracy / Precision / Recall / F1 / AUC）と混同行列 | 準備中 |
