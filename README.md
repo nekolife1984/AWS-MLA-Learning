@@ -28,7 +28,7 @@ https://nekolife1984.github.io/AWS-MLA-Learning/
 | Day 14 | SageMaker Autopilot と JumpStart | [day-14](day-14/) |
 | Day 15 | ハイパーパラメータチューニング（Automatic Model Tuning） | [day-15](day-15/) |
 | Day 16 | 評価指標（Accuracy / Precision / Recall / F1 / AUC）と混同行列 | [day-16](day-16/) |
-| Day 17 | 過学習と正則化、交差検証 | 準備中 |
+| Day 17 | 過学習と正則化、交差検証 | [day-17](day-17/) |
 | Day 18 | 推論エンドポイントの種類（リアルタイム / サーバーレス / 非同期 / バッチ変換） | 準備中 |
 | Day 19 | マルチモデルエンドポイントとオートスケーリング | 準備中 |
 | Day 20 | デプロイ戦略（Blue/Green、カナリア、線形） | 準備中 |

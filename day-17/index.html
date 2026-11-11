@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="data:,">
+<title>MLA解説 Day 17：過学習と正則化、交差検証</title>
+<style>
+:root{
+  --navy:#0b2340; --navy2:#12335e; --orange:#f97316; --orange2:#fb923c;
+  --bg:#f4f6f9; --card:#ffffff; --ink:#1a2433; --muted:#5b6b82; --line:#dde4ee;
+  --soft:#eef2f8; --good:#15803d; --bad:#dc2626; --warn-bg:#fff7ed;
+}
+@media (prefers-color-scheme: dark){
+  :root{ --bg:#0d1420; --card:#162233; --ink:#e8eef7; --muted:#9db0c8; --line:#2a3a52; --soft:#1c2c44; --warn-bg:#2a1e10; }
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:"Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP",system-ui,sans-serif;background:var(--bg);color:var(--ink);line-height:1.75;font-size:16px}
+button{min-height:44px}
+.wrap{max-width:780px;margin:0 auto;padding:0 16px 48px}
+.hero{background:linear-gradient(135deg,var(--navy) 0%,var(--navy2) 70%,#1a4a7a 100%);color:#fff;padding:36px 20px 30px;border-radius:0 0 24px 24px;margin:0 -16px}
+.badge{display:inline-block;background:var(--orange);color:#fff;font-weight:800;font-size:13px;letter-spacing:.08em;padding:4px 12px;border-radius:999px}
+.hero h1{font-size:30px;line-height:1.35;margin:16px 0 6px;font-weight:800}
+.hero .sub{font-size:12px;letter-spacing:.14em;color:#fdbA74;color:#fdba74;font-weight:700;margin:0 0 14px}
+.hero .lead{font-size:16px;color:#dbe7f5;margin:0}
+.hero .series{font-size:13px;color:#9db8d8;margin:0 0 4px;font-weight:600}
+.oneliner{background:var(--card);border:2px solid var(--orange);border-radius:16px;padding:18px 20px;margin:22px 0 8px}
+.oneliner .label{font-size:12px;font-weight:800;color:var(--orange);letter-spacing:.1em;margin:0 0 6px}
+.oneliner p{margin:0;font-size:17px;font-weight:700;line-height:1.6}
+section{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px 20px;margin:18px 0}
+.sec-head{display:flex;align-items:baseline;gap:10px;margin-bottom:10px}
+.sec-num{font-size:13px;font-weight:800;color:#fff;background:var(--navy);padding:2px 10px;border-radius:6px;white-space:nowrap}
+@media (prefers-color-scheme: dark){.sec-num{background:var(--orange)}}
+h2{font-size:21px;margin:0;line-height:1.4}
+h3{font-size:16px;margin:18px 0 8px}
+p{margin:8px 0}
+ul{margin:8px 0;padding-left:22px}
+li{margin:4px 0}
+.callout{background:var(--soft);border-radius:12px;padding:14px 16px;margin:14px 0}
+.callout strong{color:var(--navy)}
+@media (prefers-color-scheme: dark){.callout strong{color:var(--orange2)}}
+.warn{background:var(--warn-bg);border:1px solid var(--orange);border-radius:12px;padding:14px 16px;margin:14px 0}
+.big-num{display:flex;gap:12px;margin:14px 0}
+.big-num .box{flex:1;text-align:center;background:var(--soft);border-radius:12px;padding:14px 8px}
+.big-num .v{font-size:30px;font-weight:800;line-height:1.1}
+.big-num .t{font-size:13px;color:var(--muted)}
+.v-bad{color:var(--bad)} .v-good{color:var(--good)}
+/* slider */
+.slider-box{background:var(--soft);border-radius:14px;padding:18px 16px;margin:16px 0}
+.slider-box label{font-weight:800;display:block;margin-bottom:4px}
+input[type=range]{width:100%;height:44px;accent-color:var(--orange)}
+.bar-row{display:flex;align-items:center;gap:10px;margin:10px 0}
+.bar-row .bl{width:72px;font-size:14px;font-weight:700;flex-shrink:0}
+.bar-track{flex:1;background:var(--line);border-radius:999px;height:20px;overflow:hidden}
+.bar-fill{height:100%;border-radius:999px;transition:width .25s}
+.fill-train{background:var(--navy)} @media(prefers-color-scheme:dark){.fill-train{background:#60a5fa}}
+.fill-valid{background:var(--orange)}
+.bar-row .bv{width:52px;font-weight:800;text-align:right;flex-shrink:0}
+.status{font-weight:800;text-align:center;padding:8px;border-radius:10px;margin-top:12px;background:var(--card)}
+/* tabs */
+.tab-row{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 10px}
+.tab-btn{border:2px solid var(--line);background:var(--card);color:var(--ink);border-radius:10px;padding:8px 14px;font-size:15px;font-weight:700;cursor:pointer}
+.tab-btn.active{border-color:var(--orange);background:var(--orange);color:#fff}
+.tab-panel{border:1px solid var(--line);border-radius:12px;padding:16px}
+.tab-panel .formula{font-family:ui-monospace,monospace;background:var(--soft);display:inline-block;padding:4px 12px;border-radius:8px;font-size:17px;font-weight:700;margin:6px 0}
+/* CV diagram */
+.folds{display:flex;gap:6px;margin:14px 0}
+.fold{flex:1;text-align:center;padding:14px 2px;border-radius:10px;font-size:13px;font-weight:700;line-height:1.4}
+.fold.train{background:var(--navy);color:#fff}
+.fold.valid{background:var(--orange);color:#fff}
+@media(prefers-color-scheme:dark){.fold.train{background:#1e4a7a}}
+.fold small{display:block;font-weight:400;font-size:11px;opacity:.85}
+/* quiz */
+.quiz-opt{display:block;width:100%;text-align:left;background:var(--card);border:2px solid var(--line);border-radius:12px;padding:13px 16px;margin:8px 0;font-size:15px;color:var(--ink);cursor:pointer;line-height:1.6}
+.quiz-opt.correct{border-color:var(--good);background:#f0fdf4}
+.quiz-opt.wrong{border-color:var(--bad);background:#fef2f2}
+@media(prefers-color-scheme:dark){.quiz-opt.correct{background:#14291c}.quiz-opt.wrong{background:#2c1414}}
+.quiz-result{display:none;border-radius:12px;padding:14px 16px;margin-top:12px}
+.quiz-result.show{display:block}
+.next{background:linear-gradient(135deg,var(--navy),var(--navy2));color:#fff;border-radius:16px;padding:22px 20px;margin:18px 0}
+.next .label{font-size:12px;letter-spacing:.12em;color:#fdba74;font-weight:800;margin:0 0 6px}
+.next p{margin:0;font-size:17px;font-weight:700}
+footer{text-align:center;color:var(--muted);font-size:13px;padding:10px 0 4px}
+.point-list{list-style:none;padding:0;margin:10px 0}
+.point-list li{background:var(--soft);border-radius:10px;padding:12px 14px;margin:8px 0}
+.point-list .n{display:inline-block;background:var(--orange);color:#fff;font-weight:800;width:24px;height:24px;line-height:24px;text-align:center;border-radius:50%;margin-right:8px;font-size:14px;vertical-align:1px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="hero">
+    <p class="series">AWS Certified Machine Learning Engineer – Associate（MLA-C01）対策</p>
+    <span class="badge">DAY 17</span>
+    <h1>過学習と正則化、交差検証</h1>
+    <p class="sub">OVERFITTING / REGULARIZATION / CROSS-VALIDATION</p>
+    <p class="lead">学習データに合いすぎて、初めて見るデータに弱くなる「過学習」。その防ぎ方と、モデルの本当の実力を測る方法を学びます。</p>
+  </header>
+
+  <div class="oneliner">
+    <p class="label">一言で言うと</p>
+    <p>学習データに合いすぎて、初めて見るデータに弱くなる「過学習」を防ぐための、正則化と交差検証のセットです。</p>
+  </div>
+
+  <section>
+    <div class="sec-head"><span class="sec-num">01</span><h2>過学習って何？</h2></div>
+    <p>過学習（オーバーフィッティング）とは、モデルが訓練データの<strong>ノイズまで丸暗記</strong>してしまい、未知のデータに弱くなる状態です。本質ではなく、たまたまの癖まで覚えてしまうのが問題です。</p>
+    <div class="big-num">
+      <div class="box"><div class="v v-good">98%</div><div class="t">訓練精度（高い）</div></div>
+      <div class="box"><div class="v v-bad">72%</div><div class="t">検証精度（低い）</div></div>
+    </div>
+    <div class="callout"><strong>過学習のサイン：</strong>訓練精度が高いのに検証精度が低い。この「ギャップ」が過学習の目印です。</div>
+    <h3>過学習の主な原因</h3>
+    <ul>
+      <li>モデルが複雑すぎる</li>
+      <li>訓練データが少ない</li>
+      <li>特徴量が多すぎる</li>
+      <li>学習しすぎ（エポックが多すぎる）</li>
+    </ul>
+
+    <div class="slider-box">
+      <label for="complexity">インタラクティブ：モデルの複雑さを変えてみよう</label>
+      <input type="range" id="complexity" min="1" max="10" value="5" step="1" aria-label="モデルの複雑さ">
+      <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted)"><span>シンプル</span><span>複雑さ：<strong id="cVal">5</strong> / 10</span><span>複雑</span></div>
+      <div class="bar-row"><span class="bl">訓練精度</span><div class="bar-track"><div class="bar-fill fill-train" id="trainBar" style="width:87%"></div></div><span class="bv" id="trainVal">87%</span></div>
+      <div class="bar-row"><span class="bl">検証精度</span><div class="bar-track"><div class="bar-fill fill-valid" id="validBar" style="width:85%"></div></div><span class="bv" id="validVal">85%</span></div>
+      <div class="status" id="statusText">ちょうどよいバランスです</div>
+      <p style="font-size:14px;margin:10px 0 0">複雑さを上げるほど訓練精度は上がり続けますが、検証精度は途中でピークを迎えて下がり始めます。その下がり始めが過学習の始まりです。</p>
+    </div>
+
+    <div class="callout"><strong>対比：学習不足（アンダーフィッティング）</strong><br>訓練精度も検証精度も<strong>両方低い</strong>状態です。モデルが単純すぎて、データの傾向自体をつかめていません。「訓練だけ高い＝過学習」「両方低い＝学習不足」と見分けましょう。</div>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="sec-num">02</span><h2>正則化</h2></div>
+    <p>正則化とは、損失関数に<strong>「重みが大きくなるとペナルティ」</strong>を足して、モデルの複雑さにブレーキをかける方法です。丸暗記しにくい、ほどよくシンプルなモデルに寄せます。</p>
+    <p style="font-size:14px;color:var(--muted)">下のボタンをタップして、4つの手法を切り替えて確認できます。</p>
+    <div class="tab-row" role="tablist" aria-label="正則化の手法">
+      <button class="tab-btn active" data-tab="l1">L1正則化</button>
+      <button class="tab-btn" data-tab="l2">L2正則化</button>
+      <button class="tab-btn" data-tab="drop">ドロップアウト</button>
+      <button class="tab-btn" data-tab="early">早期終了</button>
+    </div>
+    <div class="tab-panel" id="tabPanel"></div>
+    <div class="warn"><strong>λ（ラムダ）の注意：</strong>正則化の強さ λ はハイパーパラメータです。強すぎるとブレーキが効きすぎて<strong>学習不足</strong>になります。チューニングでちょうどよい強さを探すのが前提です。</div>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="sec-num">03</span><h2>交差検証</h2></div>
+    <p><strong>k分割交差検証</strong>は、データを k 個に分けて、1つを検証用・残りを訓練用にする組み合わせを k 回繰り返し、結果を平均する方法です。データの分け方による偶然に左右されにくく、実力を安定して測れます。</p>
+    <p style="font-size:14px;color:var(--muted)">k=5 の例です。ボタンをタップすると、各回の「検証用フォールド」が切り替わります。</p>
+    <div class="tab-row" role="tablist" aria-label="交差検証の回">
+      <button class="tab-btn cv-btn active" data-round="0">1回目</button>
+      <button class="tab-btn cv-btn" data-round="1">2回目</button>
+      <button class="tab-btn cv-btn" data-round="2">3回目</button>
+      <button class="tab-btn cv-btn" data-round="3">4回目</button>
+      <button class="tab-btn cv-btn" data-round="4">5回目</button>
+    </div>
+    <div class="folds" id="folds"></div>
+    <p id="cvDesc" style="font-size:15px"></p>
+    <p>5回分の精度を平均したものが、そのモデルの汎化性能の見積もりになります。</p>
+    <h3>使いどころ</h3>
+    <ul>
+      <li>データが少ないとき（データを有効活用できる）</li>
+      <li>ハイパーパラメータを決めるとき</li>
+      <li>モデルの実力を安定して測りたいとき</li>
+    </ul>
+    <div class="callout"><strong>層化k分割（Stratified K-Fold）：</strong>各フォールドのクラス比率を全体と同じに保つ方法です。クラスに偏りがある<strong>不均衡データ</strong>で使います。</div>
+    <div class="warn"><strong>大事な注意：</strong>交差検証は「性能の測り方」であって、過学習そのものを直す方法ではありません。過学習を直すのは、正則化・データ追加・モデルの単純化です。<br><br>また、Amazon SageMaker の Training Jobs には交差検証の専用設定はなく、学習スクリプト側で実装するのが一般的です。</div>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="sec-num">04</span><h2>試験で問われるポイント</h2></div>
+    <ul class="point-list">
+      <li><span class="n">1</span><strong>過学習のサインはギャップ。</strong>訓練精度と検証精度の差が大きいのが過学習。両方低いなら学習不足です。</li>
+      <li><span class="n">2</span><strong>L1 と L2 の違い。</strong>L1 は重みをちょうど 0 にして特徴量を絞る。L2 は重みを小さくするだけ。この違いを正確に覚えましょう。</li>
+      <li><span class="n">3</span><strong>k分割交差検証の手順。</strong>データを k 個に分けて、検証用を1つずつ回転させ、k 回の結果を平均します。</li>
+      <li><span class="n">4</span><strong>バイアスとバリアンス。</strong>過学習はバリアンス（分散）が大きい状態、学習不足はバイアス（偏り）が大きい状態です。</li>
+    </ul>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="sec-num">05</span><h2>間違えやすい点</h2></div>
+    <ul>
+      <li><strong>役割の混同：</strong>正則化は「過学習を防ぐ方法」、交差検証は「性能を測る方法」。役割がまったく違います。</li>
+      <li><strong>見分け方の混同：</strong>訓練精度も検証精度も低いなら学習不足、訓練だけ高いなら過学習です。</li>
+      <li><strong>検証データの使い方：</strong>検証データを訓練に使ってしまうと検証の意味がなくなります。検証用とテスト用は分けておきましょう。</li>
+    </ul>
+    <div class="warn"><strong>注意：</strong>エポックを増やせば良いわけではありません。学習しすぎは過学習を悪化させます。「長く学習＝高性能」ではないことを忘れずに。</div>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="sec-num">Q</span><h2>確認クイズ</h2></div>
+    <p><strong>Q.</strong> 訓練データで正解率98%、検証データで72%のモデルがある。この状態への対策として、最も適切で<strong>ない</strong>ものはどれか。</p>
+    <div id="quiz">
+      <button class="quiz-opt" data-opt="A">A. L2正則化を強める</button>
+      <button class="quiz-opt" data-opt="B">B. 学習データを増やす</button>
+      <button class="quiz-opt" data-opt="C">C. 訓練エポックをさらに増やす</button>
+      <button class="quiz-opt" data-opt="D">D. 交差検証で汎化性能を測り直す</button>
+    </div>
+    <div class="quiz-result" id="quizResult"></div>
+  </section>
+
+  <div class="next">
+    <p class="label">NEXT — DAY 18</p>
+    <p>明日は Day 18：推論エンドポイントの種類（リアルタイム / サーバーレス / 非同期 / バッチ変換）</p>
+  </div>
+
+  <footer>MLA毎日解説 ― Day 17 ｜ 過学習と正則化、交差検証</footer>
+</div>
+
+<script>
+var trainData=[58,66,74,81,87,91,94,97,98,99];
+var validData=[60,68,76,82,85,84,80,75,72,68];
+var slider=document.getElementById('complexity');
+function updateSlider(){
+  var i=parseInt(slider.value,10)-1;
+  document.getElementById('cVal').textContent=slider.value;
+  document.getElementById('trainBar').style.width=trainData[i]+'%';
+  document.getElementById('validBar').style.width=validData[i]+'%';
+  document.getElementById('trainVal').textContent=trainData[i]+'%';
+  document.getElementById('validVal').textContent=validData[i]+'%';
+  var st=document.getElementById('statusText');
+  if(i<=2){st.textContent='学習不足ぎみ：訓練も検証も低く、もっと学習できます';st.style.color='#b45309';}
+  else if(i<=4){st.textContent='ちょうどよいバランスです（検証精度がピーク付近）';st.style.color='#15803d';}
+  else{st.textContent='過学習ぎみ：訓練だけ上がり、検証が下がっています';st.style.color='#dc2626';}
+}
+slider.addEventListener('input',updateSlider); updateSlider();
+
+var tabs={
+ l1:{title:'L1正則化（Lasso）',formula:'ペナルティ： λΣ|w|',body:'重みを<strong>ちょうど0</strong>にするため、不要な特徴量が自動で除外されます。特徴量を絞り込みたいときに有効で、結果はスパース（ほとんどが0）になります。'},
+ l2:{title:'L2正則化（Ridge）',formula:'ペナルティ： λΣw²',body:'重みを0に<strong>近づけますが、ちょうど0にはしません</strong>。全特徴量を残しつつ、全体の重みを小さく抑えます。迷ったらまずL2、が定番です。'},
+ drop:{title:'ドロップアウト',formula:'学習中にニューロンをランダムに無効化',body:'ニューラルネットワーク専用の手法です。一部のニューロンを毎回ランダムに休ませることで、特定のニューロンへの依存を防ぎます。推論時はすべて有効にします。'},
+ early:{title:'早期終了（Early Stopping）',formula:'検証損失が改善しなくなったら停止',body:'学習そのものを止めるブレーキです。検証損失を監視し、改善が止まった時点で学習を終了します。学習しすぎによる過学習を直接防げます。'}
+};
+var panel=document.getElementById('tabPanel');
+function showTab(key){
+  var t=tabs[key];
+  panel.innerHTML='<h3 style="margin-top:0">'+t.title+'</h3><span class="formula">'+t.formula+'</span><p>'+t.body+'</p>';
+  var btns=document.querySelectorAll('[data-tab]');
+  for(var j=0;j<btns.length;j++){btns[j].classList.toggle('active',btns[j].getAttribute('data-tab')===key);}
+}
+var tabBtns=document.querySelectorAll('[data-tab]');
+for(var i=0;i<tabBtns.length;i++){tabBtns[i].addEventListener('click',function(){showTab(this.getAttribute('data-tab'));});}
+showTab('l1');
+
+function renderCV(round){
+  var html='';
+  for(var f=0;f<5;f++){
+    if(f===round){html+='<div class="fold valid">検証用<small>フォールド'+(f+1)+'</small></div>';}
+    else{html+='<div class="fold train">訓練用<small>フォールド'+(f+1)+'</small></div>';}
+  }
+  document.getElementById('folds').innerHTML=html;
+  document.getElementById('cvDesc').textContent=(round+1)+'回目：フォールド'+(round+1)+'を検証用にし、残り4つで訓練して精度を測ります。';
+  var btns=document.querySelectorAll('.cv-btn');
+  for(var j=0;j<btns.length;j++){btns[j].classList.toggle('active',parseInt(btns[j].getAttribute('data-round'),10)===round);}
+}
+var cvBtns=document.querySelectorAll('.cv-btn');
+for(var k=0;k<cvBtns.length;k++){cvBtns[k].addEventListener('click',function(){renderCV(parseInt(this.getAttribute('data-round'),10));});}
+renderCV(0);
+
+var answered=false;
+var opts=document.querySelectorAll('.quiz-opt');
+for(var q=0;q<opts.length;q++){
+  opts[q].addEventListener('click',function(){
+    if(answered) return; answered=true;
+    var picked=this.getAttribute('data-opt');
+    for(var j=0;j<opts.length;j++){
+      if(opts[j].getAttribute('data-opt')==='C'){opts[j].classList.add('correct');}
+      else if(opts[j]===this && picked!=='C'){opts[j].classList.add('wrong');}
+    }
+    var r=document.getElementById('quizResult');
+    r.classList.add('show');
+    if(picked==='C'){
+      r.style.background='#f0fdf4'; r.style.border='1px solid #15803d';
+      r.innerHTML='<strong>正解！答えは C です。</strong><br>エポックを増やすと丸暗記が進み、過学習はさらに悪化します。正しい対策は、早期終了・正則化・データ追加です。交差検証（D）は性能を正しく測り直すためのもので、対策の判断材料として適切です。';
+    }else{
+      r.style.background='#fef2f2'; r.style.border='1px solid #dc2626';
+      r.innerHTML='<strong>不正解。答えは C です。</strong><br>エポックを増やすと丸暗記が進み、過学習はさらに悪化します。正しい対策は、早期終了・正則化・データ追加です。';
+    }
+  });
+}
+</script>
+</body>
+</html>
